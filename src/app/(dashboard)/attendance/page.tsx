@@ -1,0 +1,5 @@
+import { PageHeader } from "@/components/page-header";
+import { StatusBadge } from "@/components/status-badge";
+import { attendance } from "@/data/mock";
+import { initials } from "@/lib/utils";
+export default function AttendancePage(){return <><PageHeader title="Attendance" description="Track daily time records, lateness, absences, and corrections." action={<button className="btn primary">Record attendance</button>} /><div className="card"><div className="toolbar"><input type="date" className="field" /><select className="field"><option>All statuses</option><option>Present</option><option>Late</option><option>Absent</option></select></div><table><thead><tr><th>Employee</th><th>Clock in</th><th>Clock out</th><th>Total hours</th><th>Status</th></tr></thead><tbody>{attendance.map(a=><tr key={a.name}><td><div className="person"><div className="avatar">{initials(a.name)}</div><strong>{a.name}</strong></div></td><td>{a.time}</td><td>{a.time==='—'?'—':'5:30 PM'}</td><td>{a.time==='—'?'—':'8h 18m'}</td><td><StatusBadge value={a.status}/></td></tr>)}</tbody></table></div></>}
