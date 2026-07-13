@@ -1,6 +1,6 @@
 # Northstar HRIS MVP
 
-A responsive HRIS application built with Next.js, TypeScript, and Supabase. The current version includes authentication, organization management, and expanded employee profiles.
+A responsive HRIS application built with Next.js, TypeScript, and Supabase. The current version includes authentication, organization management, expanded employee profiles, and encrypted HR-only government and payroll details.
 
 ## Implemented modules
 
@@ -19,6 +19,10 @@ A responsive HRIS application built with Next.js, TypeScript, and Supabase. The 
 - Multiple emergency contacts with a single primary contact
 - Manager hierarchy validation that blocks self-management and circular reporting chains
 - Private Supabase avatar storage with signed URLs, image validation, replacement, and removal
+- Encrypted HR-only government IDs and payroll/bank details
+- Masked-by-default sensitive values with 30-second reveal controls
+- HMAC-based duplicate prevention for SSS, PhilHealth, Pag-IBIG, and TIN
+- Append-only metadata logging for every successful sensitive-value reveal
 
 Attendance, leave, documents, announcements, reports, and advanced settings remain future phases.
 
@@ -48,6 +52,8 @@ Add:
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_publishable_key
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+HRIS_DATA_ENCRYPTION_KEY=<independent 32-byte base64url secret>
+HRIS_DATA_HASH_KEY=<different independent 32-byte base64url secret>
 ```
 
 Never place a Supabase secret or service-role key in a `NEXT_PUBLIC_` variable.
@@ -61,6 +67,7 @@ supabase/migrations/202607130001_initial_hris_foundation.sql
 supabase/migrations/202607130002_employee_management.sql
 supabase/migrations/202607130003_organization_management.sql
 supabase/migrations/202607130004_expanded_employee_profile.sql
+supabase/migrations/202607140001_sensitive_employee_details.sql
 ```
 
 The Phase 3 migration adds:
@@ -137,6 +144,8 @@ Add these under **Vercel → Project Settings → Environment Variables** and re
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - `NEXT_PUBLIC_APP_URL`
+- `HRIS_DATA_ENCRYPTION_KEY`
+- `HRIS_DATA_HASH_KEY`
 
 
 ## Phase 4A expanded employee profiles
@@ -179,3 +188,57 @@ After applying `202607130004_expanded_employee_profile.sql`, Supabase creates th
 8. Self-management and circular reporting chains are rejected.
 9. Existing archived organization values and historical managers remain readable.
 10. `npm test`, `npx tsc --noEmit`, and `npm run build` pass.
+
+## Phase 4B-1 protected government and payroll details
+
+Phase 4B-1 adds an HR-only sensitive-data area with server-side encryption and masked display. Apply `supabase/migrations/202607140001_sensitive_employee_details.sql` before opening the new routes.
+
+### Generate the two server-only keys
+
+Generate each value independently:
+
+```bash
+node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"
+node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"
+```
+
+Store the first output as `HRIS_DATA_ENCRYPTION_KEY` and the second, different output as `HRIS_DATA_HASH_KEY`.
+
+- Store local values only in `.env.local`.
+- Add both values to the appropriate Vercel Production, Preview, and Development environments.
+- Back up both values in a secure password manager before entering production data.
+- Losing the encryption key makes stored encrypted values unrecoverable.
+- Changing the hash key breaks duplicate matching until existing rows are rehashed.
+- Never expose either key through a `NEXT_PUBLIC_` variable.
+
+### Phase 4B-1 routes
+
+```text
+/employees/[id]/sensitive
+/employees/[id]/sensitive/edit
+```
+
+Only `super_admin` and `hr_admin` users can open these routes or invoke their Server Actions. Employee-role users receive no database policy for either sensitive table.
+
+### Storage and reveal behavior
+
+- SSS, PhilHealth, Pag-IBIG, TIN, account name, and account number are encrypted using AES-256-GCM before storage.
+- SSS, PhilHealth, Pag-IBIG, and TIN use keyed HMAC-SHA256 hashes for duplicate detection.
+- Normal page reads select only last-four metadata, bank name, and payroll account type.
+- Protected inputs are never prefilled. Leaving one blank preserves the current value.
+- Explicit Clear controls remove the complete encrypted/hash/last-four group.
+- Revealed plaintext remains only in component state and hides after 30 seconds, on **Hide now**, refresh, or navigation.
+- Every successful reveal inserts one metadata-only row in `sensitive_data_access_logs` before plaintext is returned.
+- Access-log rows have no update or delete RLS policy.
+
+### Phase 4B-1 acceptance checklist
+
+1. Super Admin and HR Admin can view masked values, reveal one value at a time, edit values, and explicitly clear values.
+2. Employee-role users cannot see the tab or open either sensitive route.
+3. Submitted protected values are not readable as plaintext in `employee_sensitive_details`.
+4. Ciphertext starts with `v1.` and government hashes contain 64 hexadecimal characters.
+5. Duplicate government IDs produce field-level errors; duplicate bank account numbers remain allowed.
+6. Every successful reveal creates one metadata-only access-log row.
+7. A failed access-log insert returns a generic error and never returns plaintext.
+8. `npm test`, `npx tsc --noEmit`, and `npm run build` pass.
+

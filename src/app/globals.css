@@ -280,3 +280,85 @@ a.settings-card:hover { border-color: #bfdbfe; transform: translateY(-1px); box-
 .profile-tabs-skeleton { height: 52px; margin-bottom: 18px; }
 .profile-card-skeleton { min-height: 220px; }
 .error-state-actions { justify-content: center; margin-top: 18px; }
+
+/* Phase 4B-1: protected government and payroll details */
+.sensitive-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.sensitive-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 72px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.sensitive-row:last-child {
+  border-bottom: 0;
+}
+
+.sensitive-row dt {
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.sensitive-row dd {
+  margin: 6px 0 0;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+.sensitive-row .field-error {
+  margin: 8px 0 0;
+}
+
+.sensitive-form-field {
+  display: grid;
+  gap: 8px;
+}
+
+.sensitive-form-field > label:first-child {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.clear-sensitive-control {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.clear-sensitive-control input {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+}
+
+.sensitive-form .form-section + .form-section {
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 640px) {
+  .sensitive-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .sensitive-row .btn {
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+  }
+}

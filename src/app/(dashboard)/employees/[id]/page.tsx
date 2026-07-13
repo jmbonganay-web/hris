@@ -97,7 +97,7 @@ export default async function EmployeeDetailPage({
         </div>
       </section>
 
-      <ProfileTabs employeeId={employee.id} active={activeTab} />
+      <ProfileTabs employeeId={employee.id} active={activeTab} canManage={access.canManage} />
 
       {activeTab === "overview" && <ProfileOverview profile={profile} canManage={access.canManage} />}
 
