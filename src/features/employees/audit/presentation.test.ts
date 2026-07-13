@@ -1,0 +1,76 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { describeAuditEntry } from "./presentation.ts";
+import type { EmployeeAuditEntry } from "./types.ts";
+
+function entry(overrides: Partial<EmployeeAuditEntry>): EmployeeAuditEntry {
+  return {
+    id: "audit-1",
+    employee_id: "employee-1",
+    actor_profile_id: "actor-1",
+    action: "employment_details.updated",
+    entity_type: "employment",
+    entity_id: "employee-1",
+    changed_fields: [],
+    before_values: {},
+    after_values: {},
+    metadata: {},
+    source: "database_trigger",
+    created_at: "2026-07-14T00:00:00Z",
+    actor: {
+      id: "actor-1",
+      display_name: "HR Admin",
+      first_name: "HR",
+      last_name: "Admin",
+    },
+    ...overrides,
+  };
+}
+
+test("manager changes show safe snapshot labels", () => {
+  const result = describeAuditEntry(entry({
+    action: "manager.changed",
+    entity_type: "manager",
+    changed_fields: ["manager_id"],
+    before_values: { manager_id: { id: "a", label: "Maria Santos" } },
+    after_values: { manager_id: { id: "b", label: "Joel Reyes" } },
+  }));
+
+  assert.equal(result.title, "Manager changed");
+  assert.equal(result.detail, "Manager: Maria Santos → Joel Reyes");
+});
+
+test("sensitive activity shows field names only", () => {
+  const result = describeAuditEntry(entry({
+    action: "sensitive_details.updated",
+    entity_type: "sensitive_data",
+    changed_fields: ["sss_number", "account_number"],
+    metadata: { value: "DO_NOT_DISPLAY_SECRET" },
+  }));
+
+  assert.equal(result.detail, "SSS number, Account number");
+  assert.doesNotMatch(JSON.stringify(result), /DO_NOT_DISPLAY_SECRET/);
+});
+
+test("HR note deletion has no note content detail", () => {
+  const result = describeAuditEntry(entry({
+    action: "hr_note.deleted",
+    entity_type: "hr_note",
+    changed_fields: [],
+  }));
+  assert.equal(result.title, "HR note deleted");
+  assert.equal(result.detail, null);
+});
+
+test("missing actor is displayed as a system operation", () => {
+  const result = describeAuditEntry(entry({
+    actor_profile_id: null,
+    actor: null,
+  }));
+  assert.equal(result.actorLabel, "System / database operation");
+});
+
+test("unknown actions have a readable fallback", () => {
+  const result = describeAuditEntry(entry({ action: "custom.event_name" }));
+  assert.equal(result.title, "custom event name");
+});

@@ -198,6 +198,7 @@ export async function updateSensitiveDetails(
 
   revalidatePath(`/employees/${employeeId}/sensitive`);
   revalidatePath(`/employees/${employeeId}/sensitive/edit`);
+  revalidatePath(`/employees/${employeeId}/activity`);
   redirect(`/employees/${employeeId}/sensitive?success=sensitive_updated`);
 }
 
@@ -209,7 +210,7 @@ export async function revealSensitiveValue(
     return { error: "Unable to reveal this value. Please try again." };
   }
 
-  const { supabase, user } = await requireSensitiveEmployeeManager(employeeId);
+  const { supabase } = await requireSensitiveEmployeeManager(employeeId);
   const column = encryptedColumns[fieldName];
   const { data, error } = await supabase
     .from("employee_sensitive_details")
@@ -242,20 +243,20 @@ export async function revealSensitiveValue(
     .slice(0, 100) || null;
   const userAgent = requestHeaders.get("user-agent")?.slice(0, 500) || null;
 
-  const { error: logError } = await supabase
-    .from("sensitive_data_access_logs")
-    .insert({
-      actor_profile_id: user.id,
-      employee_id: employeeId,
-      field_name: fieldName,
-      action: "reveal",
-      ip_address: forwardedFor,
-      user_agent: userAgent,
-    });
+  const { error: logError } = await supabase.rpc(
+    "log_sensitive_data_reveal",
+    {
+      p_employee_id: employeeId,
+      p_field_name: fieldName,
+      p_ip_address: forwardedFor,
+      p_user_agent: userAgent,
+    },
+  );
 
   if (logError) {
     return { error: "Unable to reveal this value. Please try again." };
   }
 
+  revalidatePath(`/employees/${employeeId}/activity`);
   return { value: plaintext, revealedAt: Date.now() };
 }

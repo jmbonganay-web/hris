@@ -26,7 +26,10 @@ function revalidateEmployeeOrganizationPaths(id?: string) {
   revalidatePath("/employees");
   revalidatePath("/settings/departments");
   revalidatePath("/settings/job-titles");
-  if (id) revalidatePath(`/employees/${id}`);
+  if (id) {
+    revalidatePath(`/employees/${id}`);
+    revalidatePath(`/employees/${id}/activity`);
+  }
 }
 
 export async function createEmployee(_state: EmployeeActionState, formData: FormData): Promise<EmployeeActionState> {

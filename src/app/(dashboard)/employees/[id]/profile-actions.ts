@@ -20,6 +20,7 @@ function revalidateProfile(employeeId: string) {
   revalidatePath(`/employees/${employeeId}/personal/edit`);
   revalidatePath(`/employees/${employeeId}/employment/edit`);
   revalidatePath(`/employees/${employeeId}/manager/edit`);
+  revalidatePath(`/employees/${employeeId}/activity`);
 }
 
 function databaseMessage(error: { message?: string; code?: string }, fallback: string) {

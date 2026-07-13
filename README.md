@@ -23,6 +23,8 @@ A responsive HRIS application built with Next.js, TypeScript, and Supabase. The 
 - Masked-by-default sensitive values with 30-second reveal controls
 - HMAC-based duplicate prevention for SSS, PhilHealth, Pag-IBIG, and TIN
 - Append-only metadata logging for every successful sensitive-value reveal
+- Encrypted HR notes with role-aware ownership, soft deletion, and Super Admin restoration
+- Immutable employee Activity timeline with safe trigger-backed audit events
 
 Attendance, leave, documents, announcements, reports, and advanced settings remain future phases.
 
@@ -68,6 +70,7 @@ supabase/migrations/202607130002_employee_management.sql
 supabase/migrations/202607130003_organization_management.sql
 supabase/migrations/202607130004_expanded_employee_profile.sql
 supabase/migrations/202607140001_sensitive_employee_details.sql
+supabase/migrations/202607140002_hr_notes_audit_history.sql
 ```
 
 The Phase 3 migration adds:
@@ -242,3 +245,53 @@ Only `super_admin` and `hr_admin` users can open these routes or invoke their Se
 7. A failed access-log insert returns a generic error and never returns plaintext.
 8. `npm test`, `npx tsc --noEmit`, and `npm run build` pass.
 
+
+## Phase 4B-2 encrypted HR notes and audit history
+
+Phase 4B-2 adds encrypted HR notes and an immutable employee Activity timeline. Apply this migration after Phase 4B-1 and before deploying the updated application:
+
+```text
+supabase/migrations/202607140002_hr_notes_audit_history.sql
+```
+
+The existing `HRIS_DATA_ENCRYPTION_KEY` encrypts HR note content. Do not rotate it without migrating both Phase 4B-1 sensitive data and Phase 4B-2 HR note ciphertext.
+
+### Phase 4B-2 protected routes
+
+```text
+/employees/[id]/hr-notes
+/employees/[id]/hr-notes/new
+/employees/[id]/hr-notes/[noteId]/edit
+/employees/[id]/hr-notes/deleted
+/employees/[id]/activity
+```
+
+### HR note permissions
+
+- Super Admin can view, create, edit, soft-delete, view deleted, and restore any note.
+- HR Admin can view all active notes and create notes, but can edit or soft-delete only notes they created.
+- HR Admin cannot open the deleted-note archive or restore notes.
+- Employee-role users cannot see the HR Notes or Activity tabs and cannot open their routes directly.
+- Notes are never permanently deleted through the application.
+
+### Audit behavior
+
+- PostgreSQL triggers own row-based audit events for profile, employment, manager, emergency contact, avatar, archive, sensitive-detail, and HR-note changes.
+- Sensitive reveals use `log_sensitive_data_reveal` to insert the compliance record and Activity row atomically before plaintext is returned.
+- Audit rows are append-only and contain only approved field names and safe employment before/after values.
+- HR note text, ciphertext, government IDs, hashes, last-four values, bank values, and revealed plaintext must never appear in `employee_audit_logs`.
+- Activity is ordered newest first and paginated at 20 rows per page.
+
+### Phase 4B-2 acceptance checklist
+
+1. Apply `202607140002_hr_notes_audit_history.sql` and reload the PostgREST schema cache.
+2. Confirm `employee_hr_notes` and `employee_audit_logs` both have RLS enabled.
+3. Confirm Super Admin can create, edit, soft-delete, view deleted, and restore any note.
+4. Confirm HR Admin can edit or delete only notes they created and cannot open the deleted archive.
+5. Confirm Employee users cannot see or directly open HR Notes or Activity routes.
+6. Create one event in every audit category and confirm exactly one Activity row appears for each action.
+7. Reveal a sensitive value and confirm one compliance row plus one Activity row are created.
+8. Confirm failed reveal logging returns no plaintext.
+9. Search `employee_audit_logs` and confirm no protected values or ciphertext are present.
+10. Confirm audit rows cannot be updated or deleted through authenticated API access.
+11. Run `npm test`, `npx tsc --noEmit`, and `npm run build` successfully.

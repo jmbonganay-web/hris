@@ -10,13 +10,17 @@ const source = await readFile(
   "utf8",
 );
 
-test("reveal logging succeeds before plaintext is returned", () => {
+test("reveal compliance and activity logging succeeds before plaintext is returned", () => {
+  assert.match(source, /\.rpc\(\s*"log_sensitive_data_reveal"/);
   assert.match(source, /if \(logError\) \{/);
-  assert.match(
-    source,
-    /return \{ value: plaintext, revealedAt: Date\.now\(\) \}/,
+  assert.ok(
+    source.indexOf('"log_sensitive_data_reveal"')
+      < source.indexOf("value: plaintext"),
   );
-  assert.ok(source.indexOf("if (logError)") < source.indexOf("value: plaintext"));
+  assert.doesNotMatch(
+    source,
+    /\.from\("sensitive_data_access_logs"\)\s*\.insert/,
+  );
 });
 
 test("sensitive actions do not log plaintext or use persistent browser storage", () => {

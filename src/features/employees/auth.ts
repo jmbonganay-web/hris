@@ -47,6 +47,22 @@ export async function requireEmployeeProfileAccess(employeeId: string) {
   return { supabase, user, role, canManage, isSelf: !canManage };
 }
 
+export async function requireSuperAdmin() {
+  const { supabase, user } = await requireUser();
+  const { data } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  const role = (data?.role ?? "employee") as AppRole;
+  if (role !== "super_admin") {
+    redirect("/employees?error=unauthorized");
+  }
+
+  return { supabase, user, role };
+}
+
 export async function requireEmployeeProfileManager(employeeId: string) {
   const context = await requireHrAdmin();
   const { data: employee } = await context.supabase

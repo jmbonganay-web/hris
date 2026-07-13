@@ -32,7 +32,10 @@ test("a fresh IV produces different ciphertext", () => {
 test("tampered ciphertext fails authentication", () => {
   const encrypted = encryptSensitiveValue("1234567890", encryptionKey);
   const parts = encrypted.split(".");
-  parts[2] = `${parts[2].slice(0, -1)}${parts[2].endsWith("A") ? "B" : "A"}`;
+  const ciphertext = Buffer.from(parts[2], "base64url");
+  ciphertext[0] ^= 0x01;
+  parts[2] = ciphertext.toString("base64url");
+
   assert.throws(
     () => decryptSensitiveValue(parts.join("."), encryptionKey),
     /Unable to decrypt sensitive value/,
