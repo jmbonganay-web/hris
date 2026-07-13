@@ -295,3 +295,136 @@ The existing `HRIS_DATA_ENCRYPTION_KEY` encrypts HR note content. Do not rotate 
 9. Search `employee_audit_logs` and confirm no protected values or ciphertext are present.
 10. Confirm audit rows cannot be updated or deleted through authenticated API access.
 11. Run `npm test`, `npx tsc --noEmit`, and `npm run build` successfully.
+
+## Phase 5A attendance MVP
+
+Phase 5A adds server-authoritative employee clock-in/clock-out, daily attendance history, HR corrections, employee correction requests, and immutable attendance audit events.
+
+Apply this migration **before** deploying the Phase 5A application code:
+
+```text
+supabase/migrations/202607140003_attendance_mvp.sql
+```
+
+Company attendance dates and all displayed work times use:
+
+```text
+Asia/Manila
+```
+
+PostgreSQL generates employee clock timestamps. The employee clock actions never accept official clock-in or clock-out values from the browser.
+
+### Phase 5A routes
+
+Employee routes:
+
+```text
+/attendance
+/attendance/corrections
+/attendance/corrections/new
+```
+
+HR Admin and Super Admin routes:
+
+```text
+/admin/attendance
+/admin/attendance/new
+/admin/attendance/[employeeId]
+/admin/attendance/[employeeId]/[recordId]/edit
+/admin/attendance/corrections
+/admin/attendance/corrections/[requestId]
+```
+
+### Role matrix
+
+| Capability | Employee | HR Admin | Super Admin |
+|---|---:|---:|---:|
+| Clock in/out | Own record | Own record | Own record |
+| View attendance | Own only | All employees | All employees |
+| Submit/cancel correction request | Own only | Own only | Own only |
+| Create missing official record | No | Yes | Yes |
+| Correct official record | No | Yes | Yes |
+| Approve/reject another user’s request | No | Yes | Yes |
+| Review own request | No | No | No |
+| Permanently delete attendance | No | No | No |
+
+HR creation and correction require a reason. Employees may request changes for the current company date and previous 30 calendar days. Only one pending request is allowed per employee and attendance date.
+
+### Attendance audit privacy
+
+Attendance events are written to `employee_audit_logs` through protected database functions. Safe audit values may include:
+
+```text
+attendance_date
+clock_in_at
+clock_out_at
+status
+is_corrected
+request_type
+request_status
+```
+
+The following private text must never appear in audit JSON or application logs:
+
+```text
+clock_in_note
+clock_out_note
+last_correction_reason
+correction request reason
+employee note
+review note
+```
+
+Attendance and correction-request records have no permanent-delete workflow or authenticated delete policy.
+
+### Deployment and verification
+
+1. Back up the development database.
+2. Run the complete `202607140003_attendance_mvp.sql` migration in Supabase SQL Editor.
+3. Confirm `attendance_records` and `attendance_correction_requests` have RLS enabled.
+4. Confirm all attendance RPCs are `SECURITY DEFINER` and executable only by `authenticated` users.
+5. Deploy the application code after the migration succeeds.
+6. Run:
+
+```bash
+npm install
+npm test
+npx tsc --noEmit
+npm run build
+```
+
+In environments that expose an unusually high CPU count, this equivalent build command limits Next.js worker creation without changing production code:
+
+```bash
+CIRCLE_NODE_TOTAL=2 npm run build
+```
+
+### Manual Phase 5A QA
+
+Employee:
+
+1. Clock in and confirm one attendance row plus one `attendance.clocked_in` audit row.
+2. Double-click or use two tabs and confirm only one record exists for the company date.
+3. Clock out and confirm one `attendance.clocked_out` audit row.
+4. Leave a previous date open and confirm the next clock-in is blocked.
+5. Confirm only personal attendance and correction requests are visible.
+6. Submit and cancel a pending correction request.
+7. Confirm every `/admin/attendance` route is blocked.
+
+HR Admin and Super Admin:
+
+1. View all attendance records and filter by employee, department, date, and status.
+2. Create a missing record with a required reason.
+3. Correct an existing record with a required reason.
+4. Approve or reject another person’s pending correction request.
+5. Confirm self-review is blocked.
+6. Confirm approval creates one `attendance.corrected` and one `attendance_correction.approved` audit entry.
+7. Confirm no permanent-delete control exists.
+
+Security and boundaries:
+
+1. Confirm private notes and reasons are absent from `employee_audit_logs`.
+2. Confirm direct authenticated `UPDATE` and `DELETE` attempts on both attendance tables fail.
+3. Confirm employee clock timestamps match PostgreSQL time rather than browser values.
+4. Confirm cross-date and overnight values are rejected.
+5. Confirm request dates at day 0 and day 30 succeed, while day 31 fails.

@@ -74,3 +74,27 @@ test("unknown actions have a readable fallback", () => {
   const result = describeAuditEntry(entry({ action: "custom.event_name" }));
   assert.equal(result.title, "custom event name");
 });
+
+test("attendance correction shows only safe timestamp changes", () => {
+  const result = describeAuditEntry(entry({
+    action: "attendance.corrected",
+    entity_type: "attendance",
+    changed_fields: ["clock_out_at", "is_corrected"],
+    before_values: { clock_out_at: null, is_corrected: false },
+    after_values: { clock_out_at: "2026-07-14T09:00:00.000Z", is_corrected: true },
+  }));
+  assert.equal(result.title, "Attendance corrected");
+  assert.match(result.detail ?? "", /Clock out/);
+  assert.doesNotMatch(result.detail ?? "", /reason|note/i);
+});
+
+test("correction request actions use readable titles", () => {
+  for (const [action, title] of [
+    ["attendance_correction.requested", "Attendance correction requested"],
+    ["attendance_correction.approved", "Attendance correction approved"],
+    ["attendance_correction.rejected", "Attendance correction rejected"],
+    ["attendance_correction.cancelled", "Attendance correction cancelled"],
+  ]) {
+    assert.equal(describeAuditEntry(entry({ action })).title, title);
+  }
+});

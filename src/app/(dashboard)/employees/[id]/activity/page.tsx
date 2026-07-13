@@ -18,6 +18,7 @@ const filterLabels: Record<ActivityFilter, string> = {
   emergency: "Emergency contacts",
   sensitive: "Sensitive data",
   hr_notes: "HR notes",
+  attendance: "Attendance",
   system: "System",
 };
 

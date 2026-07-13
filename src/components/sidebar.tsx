@@ -2,27 +2,59 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Clock3, CalendarDays, FileText, Megaphone, BarChart3, Settings, ShieldCheck } from "lucide-react";
+import {
+  BarChart3,
+  CalendarDays,
+  ClipboardCheck,
+  Clock3,
+  FileText,
+  LayoutDashboard,
+  Megaphone,
+  Settings,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
 
-const items = [
-  ["/dashboard", "Dashboard", LayoutDashboard],
-  ["/employees", "Employees", Users],
-  ["/attendance", "Attendance", Clock3],
-  ["/leave", "Leave", CalendarDays],
-  ["/documents", "Documents", FileText],
-  ["/announcements", "Announcements", Megaphone],
-  ["/reports", "Reports", BarChart3],
-  ["/settings", "Settings", Settings]
-] as const;
+type NavigationItem = readonly [
+  href: string,
+  label: string,
+  icon: typeof LayoutDashboard,
+];
 
-export function Sidebar() {
+export function Sidebar({ role }: { role: string }) {
   const pathname = usePathname();
+  const attendanceItems: readonly NavigationItem[] = role === "hr_admin" || role === "super_admin"
+    ? [
+        ["/attendance", "My Attendance", Clock3],
+        ["/admin/attendance", "Attendance", Clock3],
+        ["/admin/attendance/corrections", "Correction Requests", ClipboardCheck],
+      ] as const
+    : [["/attendance", "My Attendance", Clock3]] as const;
+
+  const items: readonly NavigationItem[] = [
+    ["/dashboard", "Dashboard", LayoutDashboard],
+    ["/employees", "Employees", Users],
+    ...attendanceItems,
+    ["/leave", "Leave", CalendarDays],
+    ["/documents", "Documents", FileText],
+    ["/announcements", "Announcements", Megaphone],
+    ["/reports", "Reports", BarChart3],
+    ["/settings", "Settings", Settings],
+  ];
+
+  const activeHref = items
+    .filter(([href]) => pathname === href || pathname.startsWith(`${href}/`))
+    .sort(([left], [right]) => right.length - left.length)[0]?.[0];
+
   return (
     <aside className="sidebar">
-      <div className="brand"><span className="brand-mark"><ShieldCheck size={20} /></span><span>Northstar HR</span></div>
+      <div className="brand">
+        <span className="brand-mark"><ShieldCheck size={20} /></span>
+        <span>Northstar HR</span>
+      </div>
       <nav className="nav">
         {items.map(([href, label, Icon]) => (
-          <Link key={href} href={href} className={pathname.startsWith(href) ? "active" : ""}>
+          <Link key={href} href={href} className={activeHref === href ? "active" : ""}>
             <Icon size={18} /> {label}
           </Link>
         ))}

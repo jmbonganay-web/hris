@@ -1,3 +1,4 @@
+import { formatCompanyDateTime } from "../../attendance/time.ts";
 import type { EmployeeAuditEntry } from "./types";
 
 export type AuditPresentation = {
@@ -25,6 +26,14 @@ const actionTitles: Record<string, string> = {
   "sensitive_details.updated": "Sensitive details updated",
   "sensitive_details.cleared": "Sensitive details cleared",
   "sensitive_field.revealed": "Sensitive field revealed",
+  "attendance.clocked_in": "Clocked in",
+  "attendance.clocked_out": "Clocked out",
+  "attendance.created_by_hr": "Attendance created by HR",
+  "attendance.corrected": "Attendance corrected",
+  "attendance_correction.requested": "Attendance correction requested",
+  "attendance_correction.approved": "Attendance correction approved",
+  "attendance_correction.rejected": "Attendance correction rejected",
+  "attendance_correction.cancelled": "Attendance correction cancelled",
 };
 
 const fieldLabels: Record<string, string> = {
@@ -68,6 +77,13 @@ const fieldLabels: Record<string, string> = {
   content: "Content",
   avatar: "Profile photo",
   archived_at: "Archive status",
+  attendance_date: "Attendance date",
+  clock_in_at: "Clock in",
+  clock_out_at: "Clock out",
+  status: "Status",
+  is_corrected: "Corrected",
+  request_type: "Request type",
+  request_status: "Request status",
 };
 
 const beforeAfterAllowed = new Set([
@@ -81,6 +97,13 @@ const beforeAfterAllowed = new Set([
   "regularization_date",
   "work_location",
   "work_schedule",
+  "attendance_date",
+  "clock_in_at",
+  "clock_out_at",
+  "status",
+  "is_corrected",
+  "request_type",
+  "request_status",
 ]);
 
 function actorName(entry: EmployeeAuditEntry) {
@@ -92,7 +115,7 @@ function actorName(entry: EmployeeAuditEntry) {
     || "HR user";
 }
 
-function readableValue(value: unknown) {
+function readableValue(field: string, value: unknown) {
   if (value === null || value === undefined || value === "") {
     return "Not assigned";
   }
@@ -100,7 +123,13 @@ function readableValue(value: unknown) {
     const record = value as Record<string, unknown>;
     if (typeof record.label === "string") return record.label;
   }
-  if (typeof value === "string") return value.replaceAll("_", " ");
+  if (typeof value === "string") {
+    if (field === "clock_in_at" || field === "clock_out_at") {
+      return formatCompanyDateTime(value);
+    }
+    return value.replaceAll("_", " ");
+  }
+  if (typeof value === "boolean") return value ? "Yes" : "No";
   return String(value);
 }
 
@@ -110,8 +139,8 @@ function detailForSafeBeforeAfter(entry: EmployeeAuditEntry) {
     if (!beforeAfterAllowed.has(field)) continue;
     if (!(field in entry.before_values) && !(field in entry.after_values)) continue;
     const label = fieldLabels[field] ?? field.replaceAll("_", " ");
-    const before = readableValue(entry.before_values[field]);
-    const after = readableValue(entry.after_values[field]);
+    const before = readableValue(field, entry.before_values[field]);
+    const after = readableValue(field, entry.after_values[field]);
     details.push(`${label}: ${before} → ${after}`);
   }
   return details.length > 0 ? details.join("; ") : null;
@@ -130,8 +159,13 @@ export function describeAuditEntry(
   const title = actionTitles[entry.action]
     ?? entry.action.replaceAll(".", " ").replaceAll("_", " ");
 
-  const detail = entry.entity_type === "employment"
-    || entry.entity_type === "manager"
+  const usesSafeBeforeAfter = [
+    "employment",
+    "manager",
+    "attendance",
+    "attendance_correction",
+  ].includes(entry.entity_type);
+  const detail = usesSafeBeforeAfter
     ? detailForSafeBeforeAfter(entry)
     : changedFieldDetail(entry);
 

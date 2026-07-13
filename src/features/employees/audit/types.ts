@@ -5,6 +5,7 @@ export const activityFilters = [
   "emergency",
   "sensitive",
   "hr_notes",
+  "attendance",
   "system",
 ] as const;
 
@@ -50,4 +51,5 @@ export const activityEntityFilters: Record<
   emergency: ["emergency_contact"],
   sensitive: ["sensitive_data"],
   hr_notes: ["hr_note"],
+  attendance: ["attendance", "attendance_correction"],
 };

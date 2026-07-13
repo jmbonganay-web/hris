@@ -16,7 +16,7 @@ export function AppShell({
 }) {
   return (
     <div className="app-shell">
-      <Sidebar />
+      <Sidebar role={user.role} />
       <main className="main">
         <Topbar user={user} />
         <div className="content">{children}</div>
