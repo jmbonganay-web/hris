@@ -1,52 +1,27 @@
-# Northstar HRIS Frontend MVP
-
-A frontend-only HRIS dashboard built with Next.js, TypeScript, and reusable CSS components.
-
-## Included
-- Responsive app shell and navigation
-- Dashboard
-- Employee directory
-- Attendance
-- Leave management
-- Documents
-- Announcements
-- Reports
-- Settings
-- Demo login screen
-- Mock data and reusable components
-
-## Run locally
-```bash
-npm install
-npm run dev
-```
-Open http://localhost:3000
-
-## Production build
-```bash
-npm run build
-npm start
-```
-
-## Backend status
-This project intentionally contains no backend yet. Replace the files in `src/data` with Supabase queries once authentication and database integration begin.
 # Northstar HRIS MVP
 
-A Next.js HRIS frontend with Supabase authentication, protected routes, password reset, role-aware user display, and the initial database/RLS foundation.
+A responsive HRIS application built with Next.js, TypeScript, and Supabase. The current version includes authentication, protected routes, employee management, departments, and job titles.
 
-## Included in this version
+## Implemented modules
 
 - Supabase email/password authentication
-- Secure cookie-based sessions
-- Protected dashboard routes
-- Login, logout, forgot-password, and reset-password flows
-- User profile and role lookup
-- Initial HRIS tables: profiles, departments, job titles, employees
-- Row Level Security policies
-- Seed data for departments and job titles
-- Responsive HRIS frontend using mock operational data
+- Cookie-based sessions and protected dashboard routes
+- Forgot-password and reset-password flows
+- Role-aware access for `super_admin`, `hr_admin`, and `employee`
+- Employee list, search, filters, pagination, detail, create, edit, and soft archive
+- Department list, search, filters, pagination, detail, create, edit, department heads, employee counts, and soft archive
+- Job-title list, department/status filters, pagination, detail, create, edit, employee counts, and soft archive
+- Department-aware job-title filtering in employee forms
+- Server-side prevention of archived, inactive, or mismatched organization assignments
+- Row Level Security policies for the current HRIS foundation
 
-Employee CRUD, attendance, leave, documents, and reports are still frontend mock modules and should be connected in later phases.
+Attendance, leave, documents, announcements, reports, and advanced settings remain future phases.
+
+## Requirements
+
+- Node.js 22 or newer
+- npm 10 or newer
+- A Supabase project
 
 ## 1. Install
 
@@ -62,7 +37,7 @@ Copy `.env.example` to `.env.local`:
 cp .env.example .env.local
 ```
 
-Fill in:
+Add:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
@@ -70,23 +45,28 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_publishable_key
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-For Vercel, use the deployed production URL for `NEXT_PUBLIC_APP_URL`, for example:
+Never place a Supabase secret or service-role key in a `NEXT_PUBLIC_` variable.
 
-```env
-NEXT_PUBLIC_APP_URL=https://your-project.vercel.app
-```
+## 3. Run database migrations
 
-Never expose a Supabase secret or service-role key in a `NEXT_PUBLIC_` variable.
-
-## 3. Create the database foundation
-
-In Supabase, open **SQL Editor** and run:
+Apply the files in this order through **Supabase → SQL Editor**:
 
 ```text
 supabase/migrations/202607130001_initial_hris_foundation.sql
+supabase/migrations/202607130002_employee_management.sql
+supabase/migrations/202607130003_organization_management.sql
 ```
 
-Then optionally run:
+The Phase 3 migration adds:
+
+- `departments.department_head_id`
+- `departments.archived_at`
+- `job_titles.department_id`
+- `job_titles.archived_at`
+- Department/job-title lookup indexes
+- Active job-title uniqueness within each department
+
+Optionally run:
 
 ```text
 supabase/seed.sql
@@ -94,11 +74,7 @@ supabase/seed.sql
 
 ## 4. Create the first admin
 
-In Supabase:
-
-1. Open **Authentication → Users**.
-2. Add a user with email and password.
-3. Run this SQL, replacing the email:
+Create a user under **Supabase → Authentication → Users**, then run:
 
 ```sql
 update public.profiles
@@ -110,14 +86,12 @@ where id = (
 
 ## 5. Configure Supabase URLs
 
-In **Authentication → URL Configuration**:
+Under **Authentication → URL Configuration**:
 
-- Site URL: your production Vercel URL
+- Site URL: your Vercel production URL
 - Redirect URLs:
   - `http://localhost:3000/auth/callback`
   - `https://your-project.vercel.app/auth/callback`
-
-These URLs are required for password-reset redirects.
 
 ## 6. Run locally
 
@@ -125,28 +99,35 @@ These URLs are required for password-reset redirects.
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Open `http://localhost:3000/login`.
 
-## 7. Validate
+## 7. Test and validate
 
 ```bash
+npm test
+npx tsc --noEmit
 npm run build
 ```
 
+The tests use the Node.js built-in test runner and do not add a test-framework dependency.
+
+## Phase 3 acceptance checklist
+
+1. Create, edit, view, search, filter, paginate, and archive departments.
+2. Assign an active employee as department head.
+3. Confirm department employee counts update after employee changes.
+4. Create, edit, view, filter, paginate, and archive job titles.
+5. Confirm duplicate active job-title names are blocked within the same department.
+6. Confirm archived organization records remain visible on existing employee details.
+7. Confirm archived/inactive records disappear from new employee selectors.
+8. Confirm employee job-title options filter by department.
+9. Confirm server actions reject department/job-title mismatches.
+10. Confirm employee-role users are redirected away from organization-management routes.
+
 ## Vercel variables
 
-Add these under **Project Settings → Environment Variables**:
+Add these under **Vercel → Project Settings → Environment Variables** and redeploy:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - `NEXT_PUBLIC_APP_URL`
-
-Redeploy after adding or changing variables.
-
-## Next backend phase
-
-1. Replace employee mock data with Supabase queries.
-2. Add employee create/edit/archive Server Actions.
-3. Add form validation and authorization checks.
-4. Add attendance tables and workflows.
-5. Add leave balances, requests, and approvals.
