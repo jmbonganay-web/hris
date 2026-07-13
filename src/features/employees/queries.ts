@@ -4,7 +4,8 @@ import type { DepartmentOption, EmployeeRecord, JobTitleOption } from "./types";
 const employeeSelect = `
   id, profile_id, employee_number, first_name, last_name, work_email, personal_email, phone,
   department_id, job_title_id, manager_id, employment_type, employment_status,
-  hire_date, work_location, archived_at, created_at,
+  hire_date, probation_end_date, regularization_date, work_location, work_schedule,
+  avatar_path, archived_at, created_at,
   department:departments!employees_department_id_fkey(id,name,code,is_active,archived_at),
   job_title:job_titles!employees_job_title_id_fkey(id,title,department_id,is_active,archived_at)
 `;

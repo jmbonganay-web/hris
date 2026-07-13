@@ -1,6 +1,6 @@
 # Northstar HRIS MVP
 
-A responsive HRIS application built with Next.js, TypeScript, and Supabase. The current version includes authentication, protected routes, employee management, departments, and job titles.
+A responsive HRIS application built with Next.js, TypeScript, and Supabase. The current version includes authentication, organization management, and expanded employee profiles.
 
 ## Implemented modules
 
@@ -14,6 +14,11 @@ A responsive HRIS application built with Next.js, TypeScript, and Supabase. The 
 - Department-aware job-title filtering in employee forms
 - Server-side prevention of archived, inactive, or mismatched organization assignments
 - Row Level Security policies for the current HRIS foundation
+- Expanded employee profile tabs for overview, personal information, employment, and emergency contacts
+- HR-only profile editing with employee self-view restrictions
+- Multiple emergency contacts with a single primary contact
+- Manager hierarchy validation that blocks self-management and circular reporting chains
+- Private Supabase avatar storage with signed URLs, image validation, replacement, and removal
 
 Attendance, leave, documents, announcements, reports, and advanced settings remain future phases.
 
@@ -55,6 +60,7 @@ Apply the files in this order through **Supabase → SQL Editor**:
 supabase/migrations/202607130001_initial_hris_foundation.sql
 supabase/migrations/202607130002_employee_management.sql
 supabase/migrations/202607130003_organization_management.sql
+supabase/migrations/202607130004_expanded_employee_profile.sql
 ```
 
 The Phase 3 migration adds:
@@ -131,3 +137,45 @@ Add these under **Vercel → Project Settings → Environment Variables** and re
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - `NEXT_PUBLIC_APP_URL`
+
+
+## Phase 4A expanded employee profiles
+
+Phase 4A adds:
+
+- Responsive employee profile tabs for Overview, Personal, Employment, and Emergency Contacts
+- Dedicated HR-only edit forms per profile section
+- Multiple emergency contacts with one primary contact
+- Active-manager selection with self-management and circular-chain protection
+- Probation, regularization, work-schedule, and reporting-manager fields
+- A private `employee-avatars` Supabase Storage bucket with signed URLs
+- Employee self-view restrictions enforced through server authorization and RLS
+
+After applying `202607130004_expanded_employee_profile.sql`, Supabase creates the private avatar bucket and its policies automatically. The bucket accepts JPG, PNG, and WebP files up to 5 MB.
+
+### Phase 4A routes
+
+```text
+/employees/[id]?tab=overview
+/employees/[id]?tab=personal
+/employees/[id]?tab=employment
+/employees/[id]?tab=emergency
+/employees/[id]/personal/edit
+/employees/[id]/employment/edit
+/employees/[id]/manager/edit
+/employees/[id]/emergency-contacts/new
+/employees/[id]/emergency-contacts/[contactId]/edit
+```
+
+### Phase 4A acceptance checklist
+
+1. HR Admin and Super Admin can edit every Phase 4A profile section.
+2. Employee-role users can view only their own expanded profile.
+3. Profile photos upload to the private bucket and display through signed URLs.
+4. Invalid file types and files larger than 5 MB are rejected.
+5. Multiple emergency contacts can be created, but only one remains primary.
+6. The current primary contact cannot be deleted while other contacts remain.
+7. Only active, non-archived employees can be newly assigned as managers.
+8. Self-management and circular reporting chains are rejected.
+9. Existing archived organization values and historical managers remain readable.
+10. `npm test`, `npx tsc --noEmit`, and `npm run build` pass.

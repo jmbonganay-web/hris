@@ -51,3 +51,9 @@ where not exists (
     and existing.department_id = department.id
     and existing.archived_at is null
 );
+
+
+-- Ensure every existing employee has an expandable personal-details record.
+insert into public.employee_personal_details (employee_id)
+select id from public.employees
+on conflict (employee_id) do nothing;
