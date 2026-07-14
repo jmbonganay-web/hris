@@ -123,3 +123,29 @@ test("schedule assignments use readable safe titles and dates", () => {
   assert.equal(result.title, "Schedule assigned");
   assert.match(result.detail ?? "", /Effective start date/);
 });
+
+test("attendance calculation and finalization actions have safe readable titles", () => {
+  for (const [action, title] of [
+    ["attendance_policy.created", "Attendance policy created"],
+    ["attendance_calculation.created", "Attendance calculation created"],
+    ["attendance_calculation.recalculated", "Attendance recalculated"],
+    ["attendance_calculation.finalized", "Attendance finalized"],
+    ["attendance_finalization.started", "Attendance finalization started"],
+    ["attendance_finalization.completed", "Attendance finalization completed"],
+    ["attendance_finalization.failed", "Attendance finalization failed"],
+  ]) {
+    const result = describeAuditEntry(entry({
+      action,
+      entity_type: action.startsWith("attendance_policy")
+        ? "attendance_policy"
+        : action.startsWith("attendance_finalization")
+          ? "attendance_finalization"
+          : "attendance_calculation",
+      changed_fields: ["base_status", "worked_minutes", "late_minutes"],
+      after_values: { base_status: "present", worked_minutes: 480, late_minutes: 0 },
+      metadata: { reason: "PRIVATE_REASON_MUST_NOT_RENDER" },
+    }));
+    assert.equal(result.title, title);
+    assert.doesNotMatch(JSON.stringify(result), /PRIVATE_REASON_MUST_NOT_RENDER/);
+  }
+});

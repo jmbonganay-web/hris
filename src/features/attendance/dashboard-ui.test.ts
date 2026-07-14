@@ -27,3 +27,15 @@ test("HR navigation exposes personal attendance alongside admin attendance", () 
   assert.match(adminItems, /\["\/attendance", "My Attendance"/);
   assert.match(adminItems, /\["\/admin\/attendance", "Attendance"/);
 });
+
+test("HR navigation exposes attendance policy, recalculation, and finalization", () => {
+  const adminStart = sidebar.indexOf("? [");
+  const employeeStart = sidebar.indexOf(": [[", adminStart);
+  const adminItems = sidebar.slice(adminStart, employeeStart);
+  assert.match(adminItems, /\/admin\/attendance\/recalculate/);
+  assert.match(adminItems, /Recalculate Attendance/);
+  assert.match(adminItems, /\/admin\/attendance\/finalization/);
+  assert.match(adminItems, /Finalization Runs/);
+  assert.match(adminItems, /\/settings\/attendance-policy/);
+  assert.match(adminItems, /Attendance Policy/);
+});

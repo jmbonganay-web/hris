@@ -3,6 +3,11 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { companyDateAt, effectiveAttendanceStatus } from "./time";
 import { getResolvedEmployeeSchedule } from "@/features/schedules/queries";
+import {
+  getAdminActiveCalculationRows,
+  getOwnActiveCalculations,
+} from "./calculations/queries";
+import { filterAttendanceDays, mergeAttendanceDays } from "./calculations/attendance-days";
 import type {
   AttendanceCorrectionRequest,
   AttendanceEmployeeSummary,
@@ -98,7 +103,7 @@ export async function getTodayAttendanceContext(
 ): Promise<TodayAttendanceContext> {
   const supabase = await createClient();
   const companyDate = companyDateAt();
-  const [todayResult, previousResult, schedule] = await Promise.all([
+  const [todayResult, previousResult, schedule, calculations] = await Promise.all([
     supabase
       .from("attendance_records")
       .select(attendanceSelect)
@@ -115,6 +120,7 @@ export async function getTodayAttendanceContext(
       .limit(1)
       .maybeSingle(),
     getResolvedEmployeeSchedule(employee.id, companyDate),
+    getOwnActiveCalculations({ employeeId: employee.id, fromDate: companyDate, toDate: companyDate }),
   ]);
 
   if (todayResult.error || previousResult.error) {
@@ -125,7 +131,10 @@ export async function getTodayAttendanceContext(
     companyDate,
     employee,
     todayRecord: todayResult.data
-      ? mapAttendance(todayResult.data as unknown as Record<string, unknown>, companyDate)
+      ? {
+          ...mapAttendance(todayResult.data as unknown as Record<string, unknown>, companyDate),
+          calculation: calculations.get(companyDate) ?? null,
+        }
       : null,
     previousOpenRecord: previousResult.data
       ? mapAttendance(previousResult.data as unknown as Record<string, unknown>, companyDate)
@@ -150,31 +159,36 @@ export async function getOwnAttendanceHistory(params: {
 
   let query = supabase
     .from("attendance_records")
-    .select(attendanceSelect, { count: "exact" })
+    .select(attendanceSelect)
     .eq("employee_id", params.employeeId)
     .order("attendance_date", { ascending: false })
     .order("id", { ascending: false })
-    .range(from, to);
+    .limit(5000);
 
   if (params.fromDate) query = query.gte("attendance_date", params.fromDate);
   if (params.toDate) query = query.lte("attendance_date", params.toDate);
-  if (params.status === "missing_clock_out") {
-    query = query.lt("attendance_date", companyDate).is("clock_out_at", null);
-  } else if (params.status === "clocked_in") {
-    query = query.eq("attendance_date", companyDate).is("clock_out_at", null);
-  } else if (params.status === "completed") {
-    query = query.not("clock_out_at", "is", null);
-  } else if (params.status === "corrected") {
-    query = query.eq("is_corrected", true);
-  }
 
-  const { data, count, error } = await query;
-  if (error) throw new Error("Unable to load attendance history.");
-  const total = count ?? 0;
+  const [attendanceResult, calculationMap] = await Promise.all([
+    query,
+    getOwnActiveCalculations({
+      employeeId: params.employeeId,
+      fromDate: params.fromDate,
+      toDate: params.toDate,
+    }),
+  ]);
+  if (attendanceResult.error) throw new Error("Unable to load attendance history.");
+
+  const records = (attendanceResult.data ?? []).map((row) =>
+    mapAttendance(row as unknown as Record<string, unknown>, companyDate),
+  );
+  const merged = filterAttendanceDays(
+    mergeAttendanceDays(records, [...calculationMap.values()]),
+    params.status,
+  );
+  const total = merged.length;
+
   return {
-    records: (data ?? []).map((row) =>
-      mapAttendance(row as unknown as Record<string, unknown>, companyDate),
-    ),
+    records: merged.slice(from, to + 1),
     page,
     pageSize,
     total,
@@ -223,6 +237,12 @@ export async function getAdminAttendance(params: {
   status?: string;
   date?: string;
   page?: number;
+  calculationBaseStatus?: string;
+  isLate?: boolean;
+  isUndertime?: boolean;
+  isProvisional?: boolean;
+  isCorrectedCalculation?: boolean;
+  isRecalculated?: boolean;
 }): Promise<PaginatedAttendance> {
   const supabase = await createClient();
   const companyDate = companyDateAt();
@@ -250,38 +270,70 @@ export async function getAdminAttendance(params: {
     const { data: employeeRows, error: employeeError } = await employees;
     if (employeeError) throw new Error("Unable to filter attendance employees.");
     filteredEmployeeIds = (employeeRows ?? []).map((employee) => employee.id);
-
     if (filteredEmployeeIds.length === 0) {
       return { records: [], page, pageSize, total: 0, totalPages: 1 };
     }
   }
 
-  let request = supabase
+  let attendanceRequest = supabase
     .from("attendance_records")
-    .select(attendanceSelect, { count: "exact" })
+    .select(attendanceSelect)
     .order("attendance_date", { ascending: false })
     .order("id", { ascending: false })
-    .range(from, to);
+    .limit(5000);
+  if (filteredEmployeeIds) attendanceRequest = attendanceRequest.in("employee_id", filteredEmployeeIds);
+  if (params.date) attendanceRequest = attendanceRequest.eq("attendance_date", params.date);
 
-  if (filteredEmployeeIds) request = request.in("employee_id", filteredEmployeeIds);
-  if (params.date) request = request.eq("attendance_date", params.date);
-  if (params.status === "missing_clock_out") {
-    request = request.lt("attendance_date", companyDate).is("clock_out_at", null);
-  } else if (params.status === "clocked_in") {
-    request = request.eq("attendance_date", companyDate).is("clock_out_at", null);
-  } else if (params.status === "completed") {
-    request = request.not("clock_out_at", "is", null);
-  } else if (params.status === "corrected") {
-    request = request.eq("is_corrected", true);
+  const [attendanceResult, calculationRows] = await Promise.all([
+    attendanceRequest,
+    getAdminActiveCalculationRows({
+      employeeIds: filteredEmployeeIds,
+      fromDate: params.date || undefined,
+      toDate: params.date || undefined,
+    }),
+  ]);
+  if (attendanceResult.error) throw new Error("Unable to load attendance records.");
+
+  const records = (attendanceResult.data ?? []).map((row) =>
+    mapAttendance(row as unknown as Record<string, unknown>, companyDate),
+  );
+  const employees = new Map<string, AttendanceEmployeeSummary>();
+  for (const record of records) {
+    if (record.employee) employees.set(record.employee_id, record.employee);
+  }
+  for (const row of calculationRows) {
+    if (row.employee) employees.set(row.calculation.employee_id, row.employee);
   }
 
-  const { data, count, error } = await request;
-  if (error) throw new Error("Unable to load attendance records.");
-  const total = count ?? 0;
+  let merged = mergeAttendanceDays(
+    records,
+    calculationRows.map((row) => row.calculation),
+    employees,
+  );
+  merged = filterAttendanceDays(merged, params.status);
+  merged = merged.filter((record) => {
+    const calculation = record.calculation;
+    const needsCalculation = Boolean(
+      params.calculationBaseStatus
+        || params.isLate !== undefined
+        || params.isUndertime !== undefined
+        || params.isProvisional !== undefined
+        || params.isCorrectedCalculation !== undefined
+        || params.isRecalculated !== undefined,
+    );
+    if (needsCalculation && !calculation) return false;
+    if (params.calculationBaseStatus && calculation?.base_status !== params.calculationBaseStatus) return false;
+    if (params.isLate !== undefined && calculation?.is_late !== params.isLate) return false;
+    if (params.isUndertime !== undefined && calculation?.is_undertime !== params.isUndertime) return false;
+    if (params.isProvisional !== undefined && calculation?.is_provisional !== params.isProvisional) return false;
+    if (params.isCorrectedCalculation !== undefined && calculation?.is_corrected !== params.isCorrectedCalculation) return false;
+    if (params.isRecalculated !== undefined && calculation?.is_recalculated !== params.isRecalculated) return false;
+    return true;
+  });
+
+  const total = merged.length;
   return {
-    records: (data ?? []).map((row) =>
-      mapAttendance(row as unknown as Record<string, unknown>, companyDate),
-    ),
+    records: merged.slice(from, to + 1),
     page,
     pageSize,
     total,
@@ -372,21 +424,37 @@ export async function getEmployeeAttendanceHistory(params: {
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
-  const { data, count, error } = await supabase
-    .from("attendance_records")
-    .select(attendanceSelect, { count: "exact" })
-    .eq("employee_id", params.employeeId)
-    .order("clock_out_at", { ascending: false, nullsFirst: true })
-    .order("attendance_date", { ascending: false })
-    .order("id", { ascending: false })
-    .range(from, to);
+  const [attendanceResult, calculationRows] = await Promise.all([
+    supabase
+      .from("attendance_records")
+      .select(attendanceSelect)
+      .eq("employee_id", params.employeeId)
+      .order("attendance_date", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(5000),
+    getAdminActiveCalculationRows({ employeeIds: [params.employeeId] }),
+  ]);
+  if (attendanceResult.error) throw new Error("Unable to load employee attendance history.");
 
-  if (error) throw new Error("Unable to load employee attendance history.");
-  const total = count ?? 0;
+  const records = (attendanceResult.data ?? []).map((row) =>
+    mapAttendance(row as unknown as Record<string, unknown>, companyDate),
+  );
+  const employees = new Map<string, AttendanceEmployeeSummary>();
+  for (const record of records) {
+    if (record.employee) employees.set(record.employee_id, record.employee);
+  }
+  for (const row of calculationRows) {
+    if (row.employee) employees.set(row.calculation.employee_id, row.employee);
+  }
+  const merged = mergeAttendanceDays(
+    records,
+    calculationRows.map((row) => row.calculation),
+    employees,
+  );
+  const total = merged.length;
+
   return {
-    records: (data ?? []).map((row) =>
-      mapAttendance(row as unknown as Record<string, unknown>, companyDate),
-    ),
+    records: merged.slice(from, to + 1),
     page,
     pageSize,
     total,

@@ -83,7 +83,7 @@ export default async function AdminEmployeeAttendancePage({
                   <div><dt>Corrected at</dt><dd>{formatCompanyDateTime(record.last_corrected_at)}</dd></div>
                   <div><dt>Reason</dt><dd>{record.last_correction_reason ?? "—"}</dd></div>
                 </dl>
-                <Link className="btn" href={`/admin/attendance/${employee.id}/${record.id}/edit`}>Edit record</Link>
+                <Link className="btn" href={`/admin/attendance/${employee.id}/records/${record.id}/edit`}>Edit record</Link>
               </article>
             ))}
           </div>

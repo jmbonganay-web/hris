@@ -27,15 +27,29 @@ export default async function AdminAttendancePage({
   const query = value(raw.query);
   const department = value(raw.department);
   const status = value(raw.status);
+  const calculationStatus = value(raw.calculation_status);
+  const late = value(raw.late);
+  const undertime = value(raw.undertime);
+  const calculationState = value(raw.calculation_state);
+  const correctedCalculation = value(raw.corrected_calculation);
+  const recalculated = value(raw.recalculated);
   const hasDateFilter = Object.prototype.hasOwnProperty.call(raw, "date");
   const date = hasDateFilter ? value(raw.date) : companyDateAt();
   const page = Math.max(1, Number(value(raw.page) || "1") || 1);
 
   const [options, result] = await Promise.all([
     getEmployeeOptions(),
-    getAdminAttendance({ query, department, status, date, page }),
+    getAdminAttendance({
+      query, department, status, date, page,
+      calculationBaseStatus: calculationStatus || undefined,
+      isLate: late ? late === "true" : undefined,
+      isUndertime: undertime ? undertime === "true" : undefined,
+      isProvisional: calculationState ? calculationState === "provisional" : undefined,
+      isCorrectedCalculation: correctedCalculation ? correctedCalculation === "true" : undefined,
+      isRecalculated: recalculated ? recalculated === "true" : undefined,
+    }),
   ]);
-  const filters = { query, department, status, date };
+  const filters = { query, department, status, date, calculation_status: calculationStatus, late, undertime, calculation_state: calculationState, corrected_calculation: correctedCalculation, recalculated };
 
   return (
     <>
@@ -45,6 +59,8 @@ export default async function AdminAttendancePage({
         action={(
           <div className="header-actions">
             <Link className="btn" href="/admin/attendance/corrections">Correction requests</Link>
+            <Link className="btn" href="/admin/attendance/recalculate">Recalculate</Link>
+            <Link className="btn" href="/admin/attendance/finalization">Finalization runs</Link>
             <Link className="btn primary" href="/admin/attendance/new">Create attendance record</Link>
           </div>
         )}
@@ -70,6 +86,12 @@ export default async function AdminAttendancePage({
             <option value="missing_clock_out">Missing clock-out</option>
             <option value="corrected">Corrected</option>
           </select>
+          <select className="field" name="calculation_status" defaultValue={calculationStatus} aria-label="Calculation base status"><option value="">All calculation statuses</option><option value="present">Present</option><option value="absent">Absent</option><option value="missing_clock_out">Missing clock-out</option><option value="rest_day_worked">Rest day worked</option><option value="unscheduled_attendance">Unscheduled attendance</option></select>
+          <select className="field" name="late" defaultValue={late}><option value="">Late: any</option><option value="true">Late</option><option value="false">Not late</option></select>
+          <select className="field" name="undertime" defaultValue={undertime}><option value="">Undertime: any</option><option value="true">Undertime</option><option value="false">No undertime</option></select>
+          <select className="field" name="calculation_state" defaultValue={calculationState}><option value="">All calculation states</option><option value="provisional">Provisional</option><option value="finalized">Finalized</option></select>
+          <select className="field" name="corrected_calculation" defaultValue={correctedCalculation}><option value="">Corrected: any</option><option value="true">Corrected</option><option value="false">Not corrected</option></select>
+          <select className="field" name="recalculated" defaultValue={recalculated}><option value="">Recalculated: any</option><option value="true">Recalculated</option><option value="false">Not recalculated</option></select>
           <input className="field" type="date" name="date" defaultValue={date} aria-label="Attendance date" />
           <button className="btn" type="submit">Apply filters</button>
           {(query || department || status || date) && <Link className="btn" href="/admin/attendance?date=">Clear</Link>}

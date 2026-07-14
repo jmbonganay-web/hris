@@ -56,3 +56,23 @@ test("review action explains stale official attendance state", () => {
   assert.match(source, /REQUEST_STATE_CHANGED/);
   assert.match(source, /Attendance changed after this request was submitted/);
 });
+
+test("attendance mutation RPCs calculate one revision inside the database transaction", async () => {
+  const migration = await readFile(
+    new URL("../../../supabase/migrations/202607150001_attendance_policy_calculations.sql", import.meta.url),
+    "utf8",
+  );
+  for (const name of [
+    "clock_in_attendance",
+    "clock_out_attendance",
+    "hr_create_attendance",
+    "hr_correct_attendance",
+    "review_attendance_correction_request",
+  ]) {
+    assert.match(migration, new RegExp(`create or replace function public\\.${name}`, "i"));
+  }
+  for (const source of ["clock_in", "clock_out", "hr_create", "hr_correction", "correction_approval"]) {
+    assert.match(migration, new RegExp(`'${source}'`, "i"));
+  }
+  assert.doesNotMatch(source, /rpc\("calculate_attendance_day"/);
+});

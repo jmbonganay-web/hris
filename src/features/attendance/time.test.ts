@@ -4,6 +4,7 @@ import {
   companyDateAt,
   effectiveAttendanceStatus,
   formatCompanyTime,
+  companyDateTimeToUtc,
 } from "./time.ts";
 
 const baseRecord = {
@@ -49,4 +50,16 @@ test("UTC timestamps convert to Manila datetime-local values", async () => {
     "2026-07-14T08:03",
   );
   assert.equal(toCompanyDateTimeLocal(null), "");
+});
+
+
+test("Manila local date and time convert to fixed UTC", () => {
+  assert.equal(
+    companyDateTimeToUtc("2026-07-15", "08:00"),
+    "2026-07-15T00:00:00.000Z",
+  );
+  assert.equal(
+    companyDateTimeToUtc("2026-07-15", "00:05"),
+    "2026-07-14T16:05:00.000Z",
+  );
 });

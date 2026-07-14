@@ -1,4 +1,5 @@
 import type { ResolvedEmployeeSchedule } from "@/features/schedules/types";
+import type { ActiveAttendanceCalculation } from "@/features/attendance/calculations/types";
 
 export const COMPANY_TIME_ZONE = "Asia/Manila" as const;
 
@@ -49,7 +50,7 @@ export type AttendanceRecord = {
   id: string;
   employee_id: string;
   attendance_date: string;
-  clock_in_at: string;
+  clock_in_at: string | null;
   clock_out_at: string | null;
   clock_in_note: string | null;
   clock_out_note: string | null;
@@ -63,6 +64,8 @@ export type AttendanceRecord = {
   created_at: string;
   updated_at: string;
   employee?: AttendanceEmployeeSummary | null;
+  calculation?: ActiveAttendanceCalculation | null;
+  is_calculation_only?: boolean;
 };
 
 export type AttendanceCorrectionRequest = {

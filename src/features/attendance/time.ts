@@ -73,3 +73,12 @@ export function toCompanyDateTimeLocal(value: string | null) {
   );
   return `${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}`;
 }
+
+export function companyDateTimeToUtc(date: string, time: string): string {
+  const normalizedTime = /^\d{2}:\d{2}$/.test(time) ? `${time}:00` : time;
+  const parsed = new Date(`${date}T${normalizedTime}+08:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error("Invalid Asia/Manila date or time.");
+  }
+  return parsed.toISOString();
+}
