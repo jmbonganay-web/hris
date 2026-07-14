@@ -8,6 +8,7 @@ const tabs = [
   { id: "sensitive", label: "Government & Payroll", restricted: true, route: true },
   { id: "hr_notes", label: "HR Notes", restricted: true, route: true },
   { id: "activity", label: "Activity", restricted: true, route: true },
+  { id: "schedule", label: "Schedule", restricted: true, route: true },
 ] as const;
 
 export type ProfileTab = typeof tabs[number]["id"];
@@ -16,6 +17,7 @@ function tabHref(employeeId: string, tab: typeof tabs[number]) {
   if (tab.id === "sensitive") return `/employees/${employeeId}/sensitive`;
   if (tab.id === "hr_notes") return `/employees/${employeeId}/hr-notes`;
   if (tab.id === "activity") return `/employees/${employeeId}/activity`;
+  if (tab.id === "schedule") return `/employees/${employeeId}/schedule`;
   return `/employees/${employeeId}?tab=${tab.id}`;
 }
 

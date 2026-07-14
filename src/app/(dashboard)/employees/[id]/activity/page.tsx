@@ -19,6 +19,7 @@ const filterLabels: Record<ActivityFilter, string> = {
   sensitive: "Sensitive data",
   hr_notes: "HR notes",
   attendance: "Attendance",
+  schedule: "Schedule",
   system: "System",
 };
 

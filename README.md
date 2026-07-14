@@ -428,3 +428,89 @@ Security and boundaries:
 3. Confirm employee clock timestamps match PostgreSQL time rather than browser values.
 4. Confirm cross-date and overnight values are rejected.
 5. Confirm request dates at day 0 and day 30 succeed, while day 31 fails.
+
+## Phase 5B-1 work schedules and employee assignments
+
+Phase 5B-1 adds reusable, versioned work schedules and effective-dated employee schedule assignments. Apply this migration **before** deploying the Phase 5B-1 application code:
+
+```text
+supabase/migrations/202607140004_work_schedules.sql
+```
+
+### Phase 5B-1 routes
+
+HR Admin and Super Admin routes:
+
+```text
+/settings/work-schedules
+/settings/work-schedules/new
+/settings/work-schedules/[id]
+/settings/work-schedules/[id]/edit
+/settings/work-schedules/[id]/versions/new
+/settings/work-schedules/assign
+/settings/work-schedules/assign/bulk
+/employees/[id]/schedule
+```
+
+Employee self-service route:
+
+```text
+/my-schedule
+```
+
+### Schedule behavior
+
+- A schedule template stores its reusable code, name, description, and archive state.
+- Working days, start time, end time, and unpaid break duration are stored in immutable effective-dated versions.
+- Creating a new version preserves the rules used on earlier dates.
+- Archived templates cannot receive new assignments, but existing and historical assignments remain resolvable. Restoring a template makes it assignable again.
+- A new employee assignment ends the preceding active assignment one day before its effective start date.
+- Conflicting assignments beginning on or after the new effective date are retained for audit history but marked superseded.
+- Backdated versions and assignments require a private reason limited to 1,000 characters.
+- Employee self-service receives a protected projection that excludes descriptions, change reasons, assignment reasons, and creator metadata.
+- Employees without an assigned schedule may continue to clock in and out. The interface displays **Unassigned schedule** and does not perform scheduled-hour calculations.
+- Phase 5B-1 does not calculate late time, undertime, overtime, absence, holiday effects, or rest-day pay.
+- Schedule templates, versions, and assignments have no permanent-delete workflow.
+
+### Phase 5B-1 deployment and verification
+
+1. Back up the development database.
+2. Run the complete `202607140004_work_schedules.sql` migration in Supabase SQL Editor.
+3. Confirm RLS is enabled for all three schedule tables.
+4. Confirm schedule mutation functions use fixed search paths and are executable only by authenticated users.
+5. Deploy the application after the migration succeeds.
+6. Run:
+
+```bash
+npm install
+npm test
+npx tsc --noEmit
+npm run build
+```
+
+### Manual Phase 5B-1 QA
+
+HR Admin and Super Admin:
+
+1. Create a template and initial version.
+2. Edit only the template code, name, and description.
+3. Create a future version and confirm existing versions cannot be edited or deleted.
+4. Archive and restore a template, and confirm archived templates cannot receive new assignments.
+5. Assign one employee and confirm the preceding assignment ends one day earlier.
+6. Confirm conflicting future assignments are marked superseded rather than deleted.
+7. Bulk assign multiple employees and confirm one invalid employee rolls back the entire operation.
+8. Confirm backdated versions and assignments require reasons.
+
+Employee:
+
+1. Confirm **My Schedule** shows only the authenticated employee's current and upcoming schedule.
+2. Confirm working days, start/end time, break duration, rest-day state, and unassigned state display correctly.
+3. Confirm an unassigned employee can still use attendance.
+4. Confirm schedule-management routes are blocked.
+
+Audit and privacy:
+
+1. Confirm assignment created, ended, and superseded events use the affected employee ID.
+2. Confirm template and version events use a null employee ID.
+3. Confirm descriptions and private reasons do not appear in audit JSON.
+4. Confirm one mutation creates no duplicate audit entries.

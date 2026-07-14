@@ -58,6 +58,15 @@ export function AttendanceClockCard({ context }: { context: TodayAttendanceConte
           <p className="eyebrow">Today’s attendance</p>
           <h2>{formatCompanyDate(companyDate)}</h2>
           <p className="muted">Company timezone: Asia/Manila</p>
+          <div className="attendance-schedule-summary">
+            {context.schedule.state === "scheduled_workday" && context.schedule.version && (
+              <p><strong>Scheduled today:</strong> {context.schedule.version.start_time.slice(0, 5)}–{context.schedule.version.end_time.slice(0, 5)}</p>
+            )}
+            {context.schedule.state === "rest_day" && <p><strong>Rest day</strong> under your assigned schedule.</p>}
+            {context.schedule.state === "unassigned" && <p><strong>Unassigned schedule.</strong> You may still clock in and out.</p>}
+            {context.schedule.state === "unavailable" && <p className="form-error">Schedule information is temporarily unavailable.</p>}
+            <Link href="/my-schedule">View my schedule</Link>
+          </div>
         </div>
         {todayRecord
           ? <AttendanceStatus status={todayRecord.effective_status} corrected={todayRecord.is_corrected} />

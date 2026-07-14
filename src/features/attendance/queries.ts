@@ -2,6 +2,7 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import { companyDateAt, effectiveAttendanceStatus } from "./time";
+import { getResolvedEmployeeSchedule } from "@/features/schedules/queries";
 import type {
   AttendanceCorrectionRequest,
   AttendanceEmployeeSummary,
@@ -97,7 +98,7 @@ export async function getTodayAttendanceContext(
 ): Promise<TodayAttendanceContext> {
   const supabase = await createClient();
   const companyDate = companyDateAt();
-  const [todayResult, previousResult] = await Promise.all([
+  const [todayResult, previousResult, schedule] = await Promise.all([
     supabase
       .from("attendance_records")
       .select(attendanceSelect)
@@ -113,6 +114,7 @@ export async function getTodayAttendanceContext(
       .order("attendance_date", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    getResolvedEmployeeSchedule(employee.id, companyDate),
   ]);
 
   if (todayResult.error || previousResult.error) {
@@ -128,6 +130,7 @@ export async function getTodayAttendanceContext(
     previousOpenRecord: previousResult.data
       ? mapAttendance(previousResult.data as unknown as Record<string, unknown>, companyDate)
       : null,
+    schedule: schedule,
   };
 }
 

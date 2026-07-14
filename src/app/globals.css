@@ -605,3 +605,39 @@ a.settings-card:hover { border-color: #bfdbfe; transform: translateY(-1px); box-
   .correction-review-form .btn { width: 100%; min-height: 44px; justify-content: center; }
   .correction-review-form .form-actions { align-items: stretch; flex-direction: column-reverse; }
 }
+
+.schedule-card-grid,
+.assignment-card-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+.schedule-template-card { display: grid; gap: 14px; min-width: 0; }
+.schedule-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.schedule-summary-grid div { min-width: 0; }
+.schedule-summary-grid dt { color: var(--muted); font-size: 12px; }
+.schedule-summary-grid dd { margin: 4px 0 0; font-weight: 700; overflow-wrap: anywhere; }
+.schedule-form { display: grid; gap: 18px; }
+.schedule-version-fields { display: grid; gap: 16px; border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+.weekday-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+.checkbox-row { display: flex; align-items: center; gap: 7px; min-height: 44px; }
+.form-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.full { grid-column: 1 / -1; }
+@media (max-width: 720px) {
+  .schedule-summary-grid,
+  .form-grid.three,
+  .weekday-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 440px) {
+  .schedule-summary-grid,
+  .form-grid.three { grid-template-columns: 1fr; }
+}
+.employee-selection-toolbar { display: flex; gap: 10px; flex-wrap: wrap; }
+.employee-selection-list { display: grid; gap: 8px; max-height: 420px; overflow: auto; padding: 4px; }
+.employee-selection-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: center; min-height: 48px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; }
+.confirmation-note { border: 1px solid var(--border); border-radius: 10px; padding: 12px; background: var(--surface-2); overflow-wrap: anywhere; }
+@media (max-width: 720px) { .employee-selection-toolbar > * { width: 100%; } }

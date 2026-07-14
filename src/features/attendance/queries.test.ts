@@ -40,3 +40,9 @@ test("admin dashboard attendance summary counts today, open records, and pending
   assert.match(source, /pendingCorrections/);
   assert.match(source, /\.eq\("status", "pending"\)/);
 });
+
+test("today attendance context resolves schedule information without changing clock rules", () => {
+  assert.match(source, /getResolvedEmployeeSchedule/);
+  assert.match(source, /schedule:/);
+  assert.doesNotMatch(source, /late|undertime|overtime/i);
+});

@@ -1,3 +1,5 @@
+import type { ResolvedEmployeeSchedule } from "@/features/schedules/types";
+
 export const COMPANY_TIME_ZONE = "Asia/Manila" as const;
 
 export const attendanceStoredStatuses = ["clocked_in", "completed"] as const;
@@ -111,4 +113,5 @@ export type TodayAttendanceContext = {
   employee: AttendanceEmployeeSummary;
   todayRecord: AttendanceRecord | null;
   previousOpenRecord: AttendanceRecord | null;
+  schedule: ResolvedEmployeeSchedule;
 };

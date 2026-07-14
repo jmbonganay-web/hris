@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   CalendarDays,
+  CalendarRange,
   ClipboardCheck,
   Clock3,
   FileText,
@@ -30,11 +31,18 @@ export function Sidebar({ role }: { role: string }) {
         ["/admin/attendance/corrections", "Correction Requests", ClipboardCheck],
       ] as const
     : [["/attendance", "My Attendance", Clock3]] as const;
+  const scheduleItems: readonly NavigationItem[] = role === "hr_admin" || role === "super_admin"
+    ? [
+        ["/my-schedule", "My Schedule", CalendarRange],
+        ["/settings/work-schedules", "Work Schedules", CalendarRange],
+      ] as const
+    : [["/my-schedule", "My Schedule", CalendarRange]] as const;
 
   const items: readonly NavigationItem[] = [
     ["/dashboard", "Dashboard", LayoutDashboard],
     ["/employees", "Employees", Users],
     ...attendanceItems,
+    ...scheduleItems,
     ["/leave", "Leave", CalendarDays],
     ["/documents", "Documents", FileText],
     ["/announcements", "Announcements", Megaphone],

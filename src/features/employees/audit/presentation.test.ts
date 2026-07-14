@@ -98,3 +98,28 @@ test("correction request actions use readable titles", () => {
     assert.equal(describeAuditEntry(entry({ action })).title, title);
   }
 });
+
+test("schedule assignments use readable safe titles and dates", () => {
+  const auditEntry: EmployeeAuditEntry = {
+    id: "audit",
+    employee_id: "employee",
+    actor_profile_id: null,
+    action: "schedule_assignment.created",
+    entity_type: "schedule_assignment",
+    entity_id: "assignment",
+    changed_fields: ["schedule_template_id", "effective_start_date", "effective_end_date"],
+    before_values: {},
+    after_values: {
+      schedule_template_id: "template",
+      effective_start_date: "2026-08-01",
+      effective_end_date: null,
+    },
+    metadata: {},
+    source: "application",
+    created_at: "2026-07-14T00:00:00Z",
+    actor: null,
+  };
+  const result = describeAuditEntry(auditEntry);
+  assert.equal(result.title, "Schedule assigned");
+  assert.match(result.detail ?? "", /Effective start date/);
+});

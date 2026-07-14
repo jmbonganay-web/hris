@@ -34,6 +34,14 @@ const actionTitles: Record<string, string> = {
   "attendance_correction.approved": "Attendance correction approved",
   "attendance_correction.rejected": "Attendance correction rejected",
   "attendance_correction.cancelled": "Attendance correction cancelled",
+  "schedule_template.created": "Schedule template created",
+  "schedule_template.updated": "Schedule template updated",
+  "schedule_template.archived": "Schedule template archived",
+  "schedule_template.restored": "Schedule template restored",
+  "schedule_version.created": "Schedule version created",
+  "schedule_assignment.created": "Schedule assigned",
+  "schedule_assignment.ended": "Previous schedule ended",
+  "schedule_assignment.superseded": "Future schedule superseded",
 };
 
 const fieldLabels: Record<string, string> = {
@@ -84,6 +92,15 @@ const fieldLabels: Record<string, string> = {
   is_corrected: "Corrected",
   request_type: "Request type",
   request_status: "Request status",
+  schedule_template_id: "Schedule",
+  effective_date: "Effective date",
+  working_days: "Working days",
+  start_time: "Start time",
+  end_time: "End time",
+  break_minutes: "Break minutes",
+  effective_start_date: "Effective start date",
+  effective_end_date: "Effective end date",
+  is_superseded: "Superseded",
 };
 
 const beforeAfterAllowed = new Set([
@@ -104,6 +121,15 @@ const beforeAfterAllowed = new Set([
   "is_corrected",
   "request_type",
   "request_status",
+  "schedule_template_id",
+  "effective_date",
+  "working_days",
+  "start_time",
+  "end_time",
+  "break_minutes",
+  "effective_start_date",
+  "effective_end_date",
+  "is_superseded",
 ]);
 
 function actorName(entry: EmployeeAuditEntry) {
@@ -164,6 +190,7 @@ export function describeAuditEntry(
     "manager",
     "attendance",
     "attendance_correction",
+    "schedule_assignment",
   ].includes(entry.entity_type);
   const detail = usesSafeBeforeAfter
     ? detailForSafeBeforeAfter(entry)

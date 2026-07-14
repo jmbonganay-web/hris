@@ -6,6 +6,7 @@ export const activityFilters = [
   "sensitive",
   "hr_notes",
   "attendance",
+  "schedule",
   "system",
 ] as const;
 
@@ -20,7 +21,7 @@ export type AuditActor = {
 
 export type EmployeeAuditEntry = {
   id: string;
-  employee_id: string;
+  employee_id: string | null;
   actor_profile_id: string | null;
   action: string;
   entity_type: string;
@@ -52,4 +53,5 @@ export const activityEntityFilters: Record<
   sensitive: ["sensitive_data"],
   hr_notes: ["hr_note"],
   attendance: ["attendance", "attendance_correction"],
+  schedule: ["schedule_assignment"],
 };
