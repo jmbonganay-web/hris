@@ -6,6 +6,7 @@ import { clockIn, clockOut } from "@/app/(dashboard)/attendance/actions";
 import { formatCompanyDate, formatCompanyTime } from "@/features/attendance/time";
 import type { AttendanceActionState, TodayAttendanceContext } from "@/features/attendance/types";
 import { AttendanceStatus } from "./attendance-status";
+import { AttendanceCalculationCard } from "./attendance-calculation-card";
 
 const initialState: AttendanceActionState = {};
 
@@ -72,6 +73,10 @@ export function AttendanceClockCard({ context }: { context: TodayAttendanceConte
           ? <AttendanceStatus status={todayRecord.effective_status} corrected={todayRecord.is_corrected} />
           : <span className="badge info">Not clocked in</span>}
       </div>
+
+      {todayRecord?.calculation && (
+        <AttendanceCalculationCard calculation={todayRecord.calculation} />
+      )}
 
       {!todayRecord && <ClockForm mode="in" />}
       {todayRecord?.effective_status === "clocked_in" && (

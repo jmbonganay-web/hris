@@ -42,6 +42,13 @@ const actionTitles: Record<string, string> = {
   "schedule_assignment.created": "Schedule assigned",
   "schedule_assignment.ended": "Previous schedule ended",
   "schedule_assignment.superseded": "Future schedule superseded",
+  "attendance_policy.created": "Attendance policy created",
+  "attendance_calculation.created": "Attendance calculation created",
+  "attendance_calculation.recalculated": "Attendance recalculated",
+  "attendance_calculation.finalized": "Attendance finalized",
+  "attendance_finalization.started": "Attendance finalization started",
+  "attendance_finalization.completed": "Attendance finalization completed",
+  "attendance_finalization.failed": "Attendance finalization failed",
 };
 
 const fieldLabels: Record<string, string> = {
@@ -101,6 +108,21 @@ const fieldLabels: Record<string, string> = {
   effective_start_date: "Effective start date",
   effective_end_date: "Effective end date",
   is_superseded: "Superseded",
+  base_status: "Status",
+  revision_number: "Revision",
+  scheduled_minutes: "Scheduled minutes",
+  worked_minutes: "Worked minutes",
+  late_minutes: "Late minutes",
+  undertime_minutes: "Undertime minutes",
+  is_provisional: "Calculation state",
+  policy_version_id: "Policy version",
+  schedule_version_id: "Schedule version",
+  calculation_source: "Calculation source",
+  employees_processed: "Employees processed",
+  absences_created: "Absences created",
+  missing_clock_outs_finalized: "Missing clock-outs finalized",
+  unchanged_results_skipped: "Unchanged results skipped",
+  error_count: "Errors",
 };
 
 const beforeAfterAllowed = new Set([
@@ -130,6 +152,21 @@ const beforeAfterAllowed = new Set([
   "effective_start_date",
   "effective_end_date",
   "is_superseded",
+  "base_status",
+  "revision_number",
+  "scheduled_minutes",
+  "worked_minutes",
+  "late_minutes",
+  "undertime_minutes",
+  "is_provisional",
+  "policy_version_id",
+  "schedule_version_id",
+  "calculation_source",
+  "employees_processed",
+  "absences_created",
+  "missing_clock_outs_finalized",
+  "unchanged_results_skipped",
+  "error_count",
 ]);
 
 function actorName(entry: EmployeeAuditEntry) {
@@ -191,6 +228,9 @@ export function describeAuditEntry(
     "attendance",
     "attendance_correction",
     "schedule_assignment",
+    "attendance_policy",
+    "attendance_calculation",
+    "attendance_finalization",
   ].includes(entry.entity_type);
   const detail = usesSafeBeforeAfter
     ? detailForSafeBeforeAfter(entry)

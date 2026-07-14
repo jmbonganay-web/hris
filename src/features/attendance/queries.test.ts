@@ -28,8 +28,8 @@ test("admin missing-clock-out filtering uses date and null clock-out", () => {
 });
 
 
-test("employee attendance details prioritize open records and scope record lookups", () => {
-  assert.match(source, /\.order\("clock_out_at", \{ ascending: false, nullsFirst: true \}\)/);
+test("employee attendance details merge calculation days and scope record lookups", () => {
+  assert.match(source, /getAdminActiveCalculationRows\(\{ employeeIds: \[params\.employeeId\] \}\)/);
   assert.match(source, /\.eq\("employee_id", employeeId\)[\s\S]+\.eq\("id", recordId\)/);
 });
 
@@ -41,8 +41,16 @@ test("admin dashboard attendance summary counts today, open records, and pending
   assert.match(source, /\.eq\("status", "pending"\)/);
 });
 
-test("today attendance context resolves schedule information without changing clock rules", () => {
+test("today attendance context resolves schedule and active calculation information", () => {
   assert.match(source, /getResolvedEmployeeSchedule/);
+  assert.match(source, /getOwnActiveCalculations/);
+  assert.match(source, /calculation:/);
   assert.match(source, /schedule:/);
-  assert.doesNotMatch(source, /late|undertime|overtime/i);
+});
+
+test("attendance histories merge calculation-only days before pagination", () => {
+  assert.match(source, /mergeAttendanceDays/);
+  assert.match(source, /filterAttendanceDays/);
+  assert.match(source, /getAdminActiveCalculationRows/);
+  assert.match(source, /merged\.slice\(from, to \+ 1\)/);
 });
