@@ -26,6 +26,7 @@ function revalidateAttendance() {
   revalidatePath("/attendance/corrections");
   revalidatePath("/dashboard");
   revalidatePath("/admin/attendance");
+  revalidatePath("/admin/attendance/finalization");
 }
 
 export async function clockIn(
@@ -163,6 +164,7 @@ export async function createAttendanceByHr(
 
   revalidateAttendance();
   revalidatePath(`/admin/attendance/${employeeId}`);
+  revalidatePath(`/admin/attendance/${employeeId}/${validation.data.attendanceDate}/calculation`);
   redirect(`/admin/attendance/${employeeId}?success=created`);
 }
 
@@ -189,6 +191,7 @@ export async function correctAttendanceByHr(
 
   revalidateAttendance();
   revalidatePath(`/admin/attendance/${employeeId}`);
+  revalidatePath(`/admin/attendance/${employeeId}/${validation.data.attendanceDate}/calculation`);
   redirect(`/admin/attendance/${employeeId}?success=corrected`);
 }
 

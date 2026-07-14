@@ -1,6 +1,6 @@
 # Northstar HRIS MVP
 
-A responsive HRIS application built with Next.js, TypeScript, and Supabase. The current version includes authentication, organization management, expanded employee profiles, and encrypted HR-only government and payroll details.
+A responsive HRIS application built with Next.js, TypeScript, and Supabase. The current version includes authentication, organization management, expanded employee profiles, protected HR data, attendance, versioned work schedules, and auditable daily attendance calculations.
 
 ## Implemented modules
 
@@ -25,8 +25,13 @@ A responsive HRIS application built with Next.js, TypeScript, and Supabase. The 
 - Append-only metadata logging for every successful sensitive-value reveal
 - Encrypted HR notes with role-aware ownership, soft deletion, and Super Admin restoration
 - Immutable employee Activity timeline with safe trigger-backed audit events
+- Server-authoritative employee clock-in and clock-out with correction requests
+- Versioned work schedules and effective-dated employee assignments
+- Effective-dated attendance policies and append-only daily calculation revisions
+- Late, undertime, worked-minute, absence, rest-day, and unscheduled-attendance calculations
+- Automated Manila-date finalization with manual HR recalculation and revision history
 
-Attendance, leave, documents, announcements, reports, and advanced settings remain future phases.
+Overtime and holiday rules, leave, documents, announcements, and payroll-ready reports remain future phases.
 
 ## Requirements
 
@@ -71,6 +76,9 @@ supabase/migrations/202607130003_organization_management.sql
 supabase/migrations/202607130004_expanded_employee_profile.sql
 supabase/migrations/202607140001_sensitive_employee_details.sql
 supabase/migrations/202607140002_hr_notes_audit_history.sql
+supabase/migrations/202607140003_attendance_mvp.sql
+supabase/migrations/202607140004_work_schedules.sql
+supabase/migrations/202607150001_attendance_policy_calculations.sql
 ```
 
 The Phase 3 migration adds:
@@ -252,6 +260,9 @@ Phase 4B-2 adds encrypted HR notes and an immutable employee Activity timeline. 
 
 ```text
 supabase/migrations/202607140002_hr_notes_audit_history.sql
+supabase/migrations/202607140003_attendance_mvp.sql
+supabase/migrations/202607140004_work_schedules.sql
+supabase/migrations/202607150001_attendance_policy_calculations.sql
 ```
 
 The existing `HRIS_DATA_ENCRYPTION_KEY` encrypts HR note content. Do not rotate it without migrating both Phase 4B-1 sensitive data and Phase 4B-2 HR note ciphertext.
@@ -330,7 +341,7 @@ HR Admin and Super Admin routes:
 /admin/attendance
 /admin/attendance/new
 /admin/attendance/[employeeId]
-/admin/attendance/[employeeId]/[recordId]/edit
+/admin/attendance/[employeeId]/records/[recordId]/edit
 /admin/attendance/corrections
 /admin/attendance/corrections/[requestId]
 ```
@@ -514,3 +525,153 @@ Audit and privacy:
 2. Confirm template and version events use a null employee ID.
 3. Confirm descriptions and private reasons do not appear in audit JSON.
 4. Confirm one mutation creates no duplicate audit entries.
+
+
+## Phase 5B-2A attendance policy and daily calculations
+
+Phase 5B-2A connects Phase 5A attendance records to Phase 5B-1 work schedules. It adds immutable company attendance-policy versions and append-only daily calculation revisions for late time, undertime, worked minutes, absences, missing clock-outs, rest-day work, and unscheduled attendance.
+
+Apply migrations in this order before deploying the Phase 5B-2A application code:
+
+```text
+1. supabase/migrations/202607140003_attendance_mvp.sql
+2. supabase/migrations/202607140004_work_schedules.sql
+3. supabase/migrations/202607150001_attendance_policy_calculations.sql
+4. Reload the PostgREST schema cache
+5. Deploy the application code
+```
+
+The Phase 5B-2A migration enables `pg_cron`. Supabase currently exposes Cron as a Postgres module backed by `pg_cron`; enable the Cron integration or `pg_cron` extension in the Supabase Dashboard before running the migration when the project has not enabled it yet.
+
+### Phase 5B-2A routes
+
+HR Admin and Super Admin:
+
+```text
+/settings/attendance-policy
+/settings/attendance-policy/new
+/admin/attendance/recalculate
+/admin/attendance/finalization
+/admin/attendance/[employeeId]/[attendanceDate]/calculation
+```
+
+Employee attendance remains available at:
+
+```text
+/attendance
+/dashboard
+```
+
+### Calculation behavior
+
+- Company dates and schedule timestamps use `Asia/Manila`.
+- One effective-dated company policy supplies a fixed late grace period from 0 through 120 minutes.
+- When clock-in is within grace, late minutes are zero. Once grace is exceeded, every completed minute after scheduled start counts as late.
+- There is no undertime grace period.
+- Completed whole minutes are used; seconds are truncated rather than rounded upward.
+- Scheduled worked minutes use actual clock-in and clock-out and deduct the configured schedule break exactly once.
+- Early arrival and time after scheduled end remain included in worked minutes but are not classified as overtime in this phase.
+- Clock-in creates a provisional revision. Clock-out creates a finalized revision.
+- Daily finalization creates absences only for scheduled workdays after the Manila date ends and finalizes previous-day missing clock-outs.
+- Rest days without attendance and employees without schedules do not receive absence revisions.
+- Recalculation creates a new immutable revision and preserves every previous result.
+- Employee and HR attendance lists merge calculation-only days, including finalized absences, with raw clock records.
+
+### Calculation privacy and integrity
+
+- Employees receive only their own active calculation revision through a safe projection.
+- Employees cannot view previous revisions, recalculation reasons, policy reasons, internal errors, or unnecessary actor identifiers.
+- HR Admin and Super Admin can view full revision history and protected reasons.
+- Application users have no direct insert, update, or delete policy for calculation groups or revisions.
+- Policy versions and calculation revisions are immutable.
+- Policy reasons, recalculation reasons, manual finalization reasons, attendance notes, and attendance correction reasons never enter general audit JSON.
+- HR corrects source attendance, schedule, or policy data and recalculates; arbitrary calculated totals cannot be typed directly.
+
+### Verify the scheduled finalization job
+
+After applying the migration, run:
+
+```sql
+select jobid, jobname, schedule, command, active
+from cron.job
+where jobname = 'finalize-attendance-daily';
+```
+
+Expected: exactly one active job scheduled at `16:05 UTC`, which is `00:05 Asia/Manila`. The SQL command computes the previous date in `Asia/Manila` before invoking the protected finalization function.
+
+Inspect recent runs with:
+
+```sql
+select *
+from cron.job_run_details
+where jobid = (
+  select jobid
+  from cron.job
+  where jobname = 'finalize-attendance-daily'
+)
+order by start_time desc
+limit 10;
+```
+
+### Verify schema and RLS
+
+```sql
+select
+  relname,
+  relrowsecurity
+from pg_class
+where relnamespace = 'public'::regnamespace
+  and relname in (
+    'attendance_policy_versions',
+    'attendance_calculation_groups',
+    'attendance_calculation_revisions',
+    'attendance_finalization_runs'
+  )
+order by relname;
+```
+
+Expected: all four tables report `relrowsecurity = true`.
+
+### Manual calculation QA
+
+Use a disposable employee and schedule to verify:
+
+1. Clock in within grace and confirm `0` late minutes.
+2. Clock in after grace and confirm all completed minutes after scheduled start count as late.
+3. Clock out early and confirm exact undertime minutes with no grace.
+4. Confirm the schedule break is deducted once from completed worked minutes.
+5. Confirm early arrival and late departure remain included in worked minutes.
+6. Clock on a rest day and confirm **Rest day worked** with no late or undertime values.
+7. Clock while unassigned and confirm **Unscheduled attendance** with no schedule-based values.
+8. Leave a record open past midnight and confirm **Missing clock-out** has null worked and undertime minutes.
+9. Run finalization for a past workday without attendance and confirm an **Absent** calculation-only day appears in employee and HR attendance lists.
+10. Recalculate the same employee/date and confirm revision 2 becomes active while revision 1 remains unchanged.
+
+### Privacy QA
+
+```sql
+select
+  action,
+  changed_fields,
+  before_values,
+  after_values,
+  metadata
+from public.employee_audit_logs
+where entity_type in (
+  'attendance_policy',
+  'attendance_calculation',
+  'attendance_finalization'
+)
+order by created_at desc;
+```
+
+Confirm the result contains no policy reason, recalculation reason, manual finalization reason, attendance note, correction reason, or internal exception text.
+
+### Final verification
+
+```bash
+npm install
+npm test
+npx tsc --noEmit
+npm run build
+```

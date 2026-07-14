@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, BriefcaseBusiness, CalendarRange, MapPin, ShieldCheck, UserRoundCog } from "lucide-react";
+import { Building2, BriefcaseBusiness, CalendarClock, CalendarRange, MapPin, ShieldCheck, UserRoundCog } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { getCurrentRole } from "@/features/employees/auth";
 
@@ -25,6 +25,14 @@ const settings = [
     title: "Work schedules",
     description: "Manage reusable schedules, versions, and employee assignments.",
     icon: CalendarRange,
+    status: "Available",
+    restricted: true,
+  },
+  {
+    href: "/settings/attendance-policy",
+    title: "Attendance policy",
+    description: "Manage effective-dated grace periods and attendance calculation rules.",
+    icon: CalendarClock,
     status: "Available",
     restricted: true,
   },

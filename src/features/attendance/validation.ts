@@ -1,8 +1,10 @@
+import { companyDateAt } from "./time.ts";
 import {
   correctionRequestTypes,
   type AttendanceActionState,
   type CorrectionRequestType,
 } from "./types.ts";
+import type { RecalculationActionState } from "./calculations/types.ts";
 
 function text(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
@@ -159,6 +161,74 @@ export function validateReviewDecision(formData: FormData): {
     data: {
       decision: decision as "approve" | "reject",
       reviewNote: optionalText(reviewNote),
+    },
+  };
+}
+
+
+export function validateAttendanceRecalculation(
+  formData: FormData,
+  companyDate = companyDateAt(),
+): {
+  data?: {
+    scope: "one_employee" | "all_active";
+    employeeIds: string[] | null;
+    startDate: string;
+    endDate: string;
+    reason: string;
+  };
+  state?: RecalculationActionState;
+} {
+  const scope = text(formData, "scope");
+  const employeeId = text(formData, "employee_id");
+  const startDate = text(formData, "start_date");
+  const endDate = text(formData, "end_date");
+  const reason = text(formData, "reason");
+  const fieldErrors: Record<string, string> = {};
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+  if (scope !== "one_employee" && scope !== "all_active") {
+    fieldErrors.scope = "Choose an employee scope.";
+  }
+  if (scope === "one_employee" && !uuid.test(employeeId)) {
+    fieldErrors.employee_id = "Select a valid employee.";
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+    fieldErrors.start_date = "Start date is required.";
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+    fieldErrors.end_date = "End date is required.";
+  } else if (startDate && endDate < startDate) {
+    fieldErrors.end_date = "End date must be on or after the start date.";
+  }
+  if ((startDate && startDate > companyDate) || (endDate && endDate > companyDate)) {
+    fieldErrors.end_date = "Future dates cannot be recalculated.";
+  }
+  if (!reason) fieldErrors.reason = "A recalculation reason is required.";
+  else if (reason.length > 1000) fieldErrors.reason = "Reason must be 1,000 characters or fewer.";
+
+  if (Object.keys(fieldErrors).length) {
+    return {
+      state: {
+        error: "Please correct the highlighted fields.",
+        fieldErrors,
+        values: {
+          scope: scope === "all_active" ? "all_active" : "one_employee",
+          employeeId,
+          startDate,
+          endDate,
+        },
+      },
+    };
+  }
+
+  return {
+    data: {
+      scope: scope as "one_employee" | "all_active",
+      employeeIds: scope === "one_employee" ? [employeeId] : null,
+      startDate,
+      endDate,
+      reason,
     },
   };
 }

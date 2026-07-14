@@ -29,6 +29,9 @@ export function Sidebar({ role }: { role: string }) {
         ["/attendance", "My Attendance", Clock3],
         ["/admin/attendance", "Attendance", Clock3],
         ["/admin/attendance/corrections", "Correction Requests", ClipboardCheck],
+        ["/admin/attendance/recalculate", "Recalculate Attendance", CalendarRange],
+        ["/admin/attendance/finalization", "Finalization Runs", CalendarDays],
+        ["/settings/attendance-policy", "Attendance Policy", Settings],
       ] as const
     : [["/attendance", "My Attendance", Clock3]] as const;
   const scheduleItems: readonly NavigationItem[] = role === "hr_admin" || role === "super_admin"

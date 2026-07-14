@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/page-header";
 import { requireAttendanceAdmin } from "@/features/attendance/auth";
 import { getAttendanceRecord } from "@/features/attendance/queries";
 import { getEmployee } from "@/features/employees/queries";
-import { correctAttendanceByHr } from "../../../../../attendance/actions";
+import { correctAttendanceByHr } from "../../../../../../attendance/actions";
 
 export default async function EditAdminAttendancePage({
   params,

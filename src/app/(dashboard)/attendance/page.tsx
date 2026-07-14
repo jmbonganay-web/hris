@@ -64,6 +64,9 @@ export default async function AttendancePage({
             <option value="completed">Completed</option>
             <option value="missing_clock_out">Missing clock-out</option>
             <option value="corrected">Corrected</option>
+            <option value="absent">Absent</option>
+            <option value="rest_day_worked">Rest day worked</option>
+            <option value="unscheduled_attendance">Unscheduled attendance</option>
           </select>
           <input className="field" type="date" name="from" defaultValue={fromDate} aria-label="From date" />
           <input className="field" type="date" name="to" defaultValue={toDate} aria-label="To date" />

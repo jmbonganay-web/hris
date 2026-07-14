@@ -641,3 +641,36 @@ a.settings-card:hover { border-color: #bfdbfe; transform: translateY(-1px); box-
 .employee-selection-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: center; min-height: 48px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; }
 .confirmation-note { border: 1px solid var(--border); border-radius: 10px; padding: 12px; background: var(--surface-2); overflow-wrap: anywhere; }
 @media (max-width: 720px) { .employee-selection-toolbar > * { width: 100%; } }
+
+.calculation-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.calculation-status.compact .badge { font-size: 11px; padding: 3px 7px; }
+.attendance-calculation-card {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-subtle, #f8fafc);
+}
+.calculation-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.calculation-metrics-grid > div { min-width: 0; }
+.calculation-metrics-grid span { display: block; color: var(--muted); font-size: 12px; }
+.calculation-metrics-grid strong { display: block; margin-top: 4px; overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .calculation-metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.revision-timeline { display: grid; gap: 14px; margin-top: 14px; }
+.revision-entry { border-top: 1px solid var(--border); padding-top: 14px; }
+.revision-entry:first-child { border-top: 0; padding-top: 0; }
+.calculation-detail-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 760px) { .calculation-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
