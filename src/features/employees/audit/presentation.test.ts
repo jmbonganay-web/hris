@@ -149,3 +149,44 @@ test("attendance calculation and finalization actions have safe readable titles"
     assert.doesNotMatch(JSON.stringify(result), /PRIVATE_REASON_MUST_NOT_RENDER/);
   }
 });
+
+test("Phase 5B-2B audit actions have safe user-facing titles", () => {
+  const actions = [
+    ["overtime_policy.created", "Overtime policy created"],
+    ["holiday.created", "Holiday created"],
+    ["holiday.replaced", "Holiday replaced"],
+    ["holiday.deactivated", "Holiday deactivated"],
+    ["overtime_detection.created", "Overtime detected"],
+    ["overtime_detection.recalculated", "Overtime recalculated"],
+    ["overtime_detection.superseded", "Overtime detection superseded"],
+    ["overtime_approval.approved", "Overtime approved"],
+    ["overtime_approval.rejected", "Overtime rejected"],
+    ["overtime_approval.superseded", "Overtime approval superseded"],
+  ] as const;
+  for (const [action, expected] of actions) {
+    assert.equal(describeAuditEntry(entry({ action })).title, expected);
+  }
+});
+
+test("Phase 5B-2B safe audit fields have labels", () => {
+  const auditEntry = entry({
+    action: "overtime_detection.created",
+    changed_fields: [
+      "attendance_date",
+      "segment_type",
+      "holiday_type",
+      "detected_minutes",
+      "approved_minutes",
+      "revision_number",
+      "calculation_source",
+    ],
+  });
+  const detail = describeAuditEntry(auditEntry).detail ?? "";
+  assert.match(detail, /Attendance date/);
+  assert.match(detail, /Segment type/);
+  assert.match(detail, /Holiday type/);
+  assert.match(detail, /Detected minutes/);
+  assert.match(detail, /Approved minutes/);
+  assert.match(detail, /Revision number/);
+  assert.match(detail, /Calculation source/);
+});

@@ -49,6 +49,16 @@ const actionTitles: Record<string, string> = {
   "attendance_finalization.started": "Attendance finalization started",
   "attendance_finalization.completed": "Attendance finalization completed",
   "attendance_finalization.failed": "Attendance finalization failed",
+  "overtime_policy.created": "Overtime policy created",
+  "holiday.created": "Holiday created",
+  "holiday.replaced": "Holiday replaced",
+  "holiday.deactivated": "Holiday deactivated",
+  "overtime_detection.created": "Overtime detected",
+  "overtime_detection.recalculated": "Overtime recalculated",
+  "overtime_detection.superseded": "Overtime detection superseded",
+  "overtime_approval.approved": "Overtime approved",
+  "overtime_approval.rejected": "Overtime rejected",
+  "overtime_approval.superseded": "Overtime approval superseded",
 };
 
 const fieldLabels: Record<string, string> = {
@@ -109,7 +119,7 @@ const fieldLabels: Record<string, string> = {
   effective_end_date: "Effective end date",
   is_superseded: "Superseded",
   base_status: "Status",
-  revision_number: "Revision",
+  revision_number: "Revision number",
   scheduled_minutes: "Scheduled minutes",
   worked_minutes: "Worked minutes",
   late_minutes: "Late minutes",
@@ -123,6 +133,13 @@ const fieldLabels: Record<string, string> = {
   missing_clock_outs_finalized: "Missing clock-outs finalized",
   unchanged_results_skipped: "Unchanged results skipped",
   error_count: "Errors",
+  segment_type: "Segment type",
+  holiday_type: "Holiday type",
+  detected_minutes: "Detected minutes",
+  approved_minutes: "Approved minutes",
+  overtime_policy_version_id: "Overtime policy version",
+  holiday_version_id: "Holiday version",
+  minimum_qualifying_minutes: "Minimum qualifying minutes",
 };
 
 const beforeAfterAllowed = new Set([
@@ -167,6 +184,13 @@ const beforeAfterAllowed = new Set([
   "missing_clock_outs_finalized",
   "unchanged_results_skipped",
   "error_count",
+  "segment_type",
+  "holiday_type",
+  "detected_minutes",
+  "approved_minutes",
+  "overtime_policy_version_id",
+  "holiday_version_id",
+  "minimum_qualifying_minutes",
 ]);
 
 function actorName(entry: EmployeeAuditEntry) {
@@ -222,7 +246,9 @@ export function describeAuditEntry(
   const title = actionTitles[entry.action]
     ?? entry.action.replaceAll(".", " ").replaceAll("_", " ");
 
-  const usesSafeBeforeAfter = [
+  const usesChangedFieldLabelsOnly =
+    entry.action.startsWith("overtime_") || entry.action.startsWith("holiday.");
+  const usesSafeBeforeAfter = !usesChangedFieldLabelsOnly && [
     "employment",
     "manager",
     "attendance",

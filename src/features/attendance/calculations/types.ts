@@ -1,6 +1,9 @@
+import type { HolidayType } from "@/features/overtime/holidays/types";
+
 export const attendanceCalculationBaseStatuses = [
   "present",
   "absent",
+  "holiday",
   "missing_clock_out",
   "rest_day_worked",
   "unscheduled_attendance",
@@ -33,6 +36,10 @@ export type AttendanceCalculationRevision = {
   schedule_assignment_id: string | null;
   schedule_version_id: string | null;
   policy_version_id: string | null;
+  holiday_version_id: string | null;
+  holiday_name: string | null;
+  holiday_type: HolidayType | null;
+  is_holiday: boolean;
   base_status: AttendanceCalculationBaseStatus;
   is_provisional: boolean;
   scheduled_start_at: string | null;

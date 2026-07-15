@@ -19,6 +19,7 @@ export function attendanceBaseStatusLabel(
   const labels: Record<AttendanceCalculationBaseStatus, string> = {
     present: "Present",
     absent: "Absent",
+    holiday: "Holiday",
     missing_clock_out: "Missing clock-out",
     rest_day_worked: "Rest day worked",
     unscheduled_attendance: "Unscheduled attendance",
@@ -35,4 +36,25 @@ export function attendanceCalculationFlags(
   if (revision.is_corrected) flags.push("Corrected");
   if (revision.is_recalculated) flags.push("Recalculated");
   return flags;
+}
+export function holidayAttendanceLabel(
+  revision: Pick<
+    AttendanceCalculationRevision,
+    | "is_holiday"
+    | "holiday_name"
+    | "holiday_type"
+    | "actual_clock_in_at"
+    | "actual_clock_out_at"
+  >,
+): string | null {
+  if (!revision.is_holiday) return null;
+  if (revision.actual_clock_in_at && revision.actual_clock_out_at) {
+    return "Holiday work";
+  }
+  if (revision.holiday_type === "regular_holiday") return "Regular Holiday";
+  if (revision.holiday_type === "special_non_working_holiday") {
+    return "Special Non-Working Holiday";
+  }
+  if (revision.holiday_type === "company_holiday") return "Company Holiday";
+  return revision.holiday_name ?? "Holiday";
 }

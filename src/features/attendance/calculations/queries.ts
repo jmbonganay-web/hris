@@ -11,6 +11,7 @@ import type {
 const activeRevisionSelect = `
   id,calculation_group_id,revision_number,attendance_record_id,
   schedule_assignment_id,schedule_version_id,policy_version_id,
+  holiday_version_id,holiday_name,holiday_type,is_holiday,
   base_status,is_provisional,scheduled_start_at,scheduled_end_at,
   scheduled_minutes,actual_clock_in_at,actual_clock_out_at,
   worked_minutes,late_minutes,undertime_minutes,is_late,is_undertime,
@@ -23,6 +24,7 @@ const activeRevisionSelect = `
 const historySelect = `
   id,calculation_group_id,revision_number,attendance_record_id,
   schedule_assignment_id,schedule_version_id,policy_version_id,
+  holiday_version_id,holiday_name,holiday_type,is_holiday,
   base_status,is_provisional,scheduled_start_at,scheduled_end_at,
   scheduled_minutes,actual_clock_in_at,actual_clock_out_at,
   worked_minutes,late_minutes,undertime_minutes,is_late,is_undertime,
@@ -44,6 +46,12 @@ function mapSafeRow(row: Record<string, unknown>): ActiveAttendanceCalculation {
     schedule_assignment_id: row.schedule_assignment_id ? String(row.schedule_assignment_id) : null,
     schedule_version_id: row.schedule_version_id ? String(row.schedule_version_id) : null,
     policy_version_id: row.policy_version_id ? String(row.policy_version_id) : null,
+    holiday_version_id: row.holiday_version_id ? String(row.holiday_version_id) : null,
+    holiday_name: row.holiday_name ? String(row.holiday_name) : null,
+    holiday_type: row.holiday_type
+      ? (String(row.holiday_type) as ActiveAttendanceCalculation["holiday_type"])
+      : null,
+    is_holiday: Boolean(row.is_holiday),
     base_status: row.base_status as ActiveAttendanceCalculation["base_status"],
     is_provisional: Boolean(row.is_provisional),
     scheduled_start_at: row.scheduled_start_at ? String(row.scheduled_start_at) : null,

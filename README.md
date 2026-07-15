@@ -1,6 +1,6 @@
 # Northstar HRIS MVP
 
-A responsive HRIS application built with Next.js, TypeScript, and Supabase. The current version includes authentication, organization management, expanded employee profiles, protected HR data, attendance, versioned work schedules, and auditable daily attendance calculations.
+A responsive HRIS application built with Next.js, TypeScript, and Supabase. The current version includes authentication, organization management, expanded employee profiles, protected HR data, attendance, versioned work schedules, overtime and holidays, and HR attendance reports with payroll-ready exports.
 
 ## Implemented modules
 
@@ -30,8 +30,10 @@ A responsive HRIS application built with Next.js, TypeScript, and Supabase. The 
 - Effective-dated attendance policies and append-only daily calculation revisions
 - Late, undertime, worked-minute, absence, rest-day, and unscheduled-attendance calculations
 - Automated Manila-date finalization with manual HR recalculation and revision history
+- Effective-dated overtime thresholds, immutable holidays, overtime approvals, and employee overtime history
+- HR-only Operational and Payroll attendance reports with CSV and XLSX exports
 
-Overtime and holiday rules, leave, documents, announcements, and payroll-ready reports remain future phases.
+Leave management, document management, dashboard analytics, notifications, and payroll computation remain future phases.
 
 ## Requirements
 
@@ -79,6 +81,9 @@ supabase/migrations/202607140002_hr_notes_audit_history.sql
 supabase/migrations/202607140003_attendance_mvp.sql
 supabase/migrations/202607140004_work_schedules.sql
 supabase/migrations/202607150001_attendance_policy_calculations.sql
+supabase/migrations/202607150002_overtime_holidays.sql
+supabase/migrations/202607150003_overtime_holidays_privilege_hardening.sql
+supabase/migrations/202607150004_attendance_reports_payroll_export.sql
 ```
 
 The Phase 3 migration adds:
@@ -675,3 +680,163 @@ npm test
 npx tsc --noEmit
 npm run build
 ```
+
+## Phase 5B-2B overtime and holidays
+
+Apply the migration after Phase 5B-2A:
+
+```text
+supabase/migrations/202607150002_overtime_holidays.sql
+```
+
+Phase 5B-2B adds effective-dated overtime thresholds, immutable holiday versions, holiday-aware attendance revisions, immutable overtime detections, full HR approval/rejection, employee-safe history, and explicit overtime recalculation.
+
+### Employee routes
+
+```text
+/overtime
+/attendance
+```
+
+### HR Admin and Super Admin routes
+
+```text
+/settings/overtime-policy
+/settings/overtime-policy/new
+/settings/holidays
+/settings/holidays/new
+/settings/holidays/[holidayGroupId]
+/settings/holidays/[holidayGroupId]/replace
+/admin/overtime
+/admin/overtime/[approvalItemId]
+/admin/overtime/recalculate
+```
+
+### Calculation and security behavior
+
+- The implicit overtime threshold is 30 completed whole minutes.
+- Pre-shift and post-shift segments qualify independently.
+- Holiday work overrides rest-day and normal scheduled overtime.
+- Rest-day overtime overrides pre-shift and post-shift overtime.
+- Holiday and rest-day work reuse finalized attendance worked minutes; breaks are never deducted twice.
+- Approval always accepts all detected minutes; rejection accepts zero and requires a reason.
+- Recalculation supersedes changed active detections and approval items while preserving history.
+- Employee overtime history is provided only through `get_my_overtime_items` and excludes protected reasons, reviewer IDs, internal source IDs, and policy/holiday change reasons.
+- Direct table mutation is unavailable to authenticated clients; protected writes use fixed-search-path security-definer functions.
+- Holiday or policy changes never silently recalculate historical attendance or overtime.
+
+### Verification
+
+```bash
+npm test
+npx tsc --noEmit
+npm run build
+```
+
+
+## Phase 5C attendance reports and payroll export
+
+Apply Phase 5C after all Phase 5B-2B migrations:
+
+```text
+1. supabase/migrations/202607150002_overtime_holidays.sql
+2. supabase/migrations/202607150003_overtime_holidays_privilege_hardening.sql
+3. supabase/migrations/202607150004_attendance_reports_payroll_export.sql
+4. Reload the PostgREST schema cache
+5. Deploy the updated application
+```
+
+### Access and routes
+
+Phase 5C is available only to HR Admin and Super Admin:
+
+```text
+/reports
+/api/reports/export/csv
+/api/reports/export/xlsx
+```
+
+Employees and managers do not receive organization-wide report or export access.
+
+### Report modes and limits
+
+- **Operational mode:** up to 31 inclusive Asia/Manila calendar days; may include provisional attendance for live monitoring.
+- **Payroll mode:** up to 366 inclusive Asia/Manila calendar days; active finalized attendance revisions only.
+- Future report dates are rejected.
+- Screen page sizes are 25, 50, or 100 rows.
+- Every CSV dataset and every XLSX worksheet is limited to 25,000 rows.
+- Phase 5C prepares attendance data for payroll but does not calculate salary, overtime pay, holiday pay, deductions, contributions, or payslips.
+
+### Export package
+
+CSV downloads are available for four datasets:
+
+```text
+Daily Attendance
+Employee Summary
+Exceptions
+Overtime & Holiday Work
+```
+
+The XLSX download contains the same four datasets as visible worksheets with frozen headers, filters, explicit date/timestamp cells, integer-minute values, and `HH:MM` display values. Formula-like text is stored as plain text. Files are generated in memory, are not stored, and successful downloads require a safe organization-level audit event.
+
+### Phase 5C verification
+
+After applying the migration, confirm the six public report functions use `SECURITY DEFINER`, authenticated execution only, and fixed `pg_catalog, public` search paths. Confirm the two internal source views and internal helpers are not selectable or executable by `public`, `anon`, or `authenticated`.
+
+Run application verification:
+
+```bash
+npm install
+npm test
+npx tsc --noEmit
+npm run build
+```
+
+Manual QA:
+
+1. Sign in as HR Admin or Super Admin and open `/reports`.
+2. Confirm the current Asia/Manila month is selected by default.
+3. Confirm Operational mode separates finalized and provisional totals and rejects ranges over 31 days.
+4. Confirm Payroll mode excludes provisional rows and rejects ranges over 366 days.
+5. Download all four CSV datasets and the XLSX workbook; confirm each file uses the selected filters.
+6. Confirm a result over 25,000 rows is rejected before download.
+7. Confirm successful exports create `attendance_report.csv_exported` or `attendance_report.xlsx_exported` audit entries without employee names, timestamps, revision IDs, notes, reasons, or file bytes.
+8. Sign in as an employee and confirm `/reports` and both export endpoints are inaccessible.
+
+### Phase 5C query-plan review in preview
+
+Run query-plan checks only in a preview Supabase project using an existing HR Admin or Super Admin profile UUID. Replace `HR_PROFILE_UUID` and the sample dates before running. Do not copy employee rows or production timing output into source control.
+
+```sql
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'HR_PROFILE_UUID', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select set_config('request.jwt.claims', '{"sub":"HR_PROFILE_UUID","role":"authenticated"}', true);
+
+explain (analyze, buffers)
+select *
+from public.get_attendance_daily_report(
+  'payroll', date '2026-01-01', date '2026-12-31',
+  null, null, null, false, null, null, 1, 100, false
+);
+
+explain (analyze, buffers)
+select *
+from public.get_employee_attendance_summary(
+  'payroll', date '2026-01-01', date '2026-12-31',
+  null, null, null, false, false, 1, 100, false
+);
+
+explain (analyze, buffers)
+select *
+from public.get_overtime_holiday_report(
+  'payroll', date '2026-01-01', date '2026-12-31',
+  null, null, null, false, null, null, null, 1, 100, false
+);
+
+rollback;
+```
+
+Confirm the plans use the report date and active-pointer indexes and do not perform unbounded sequential scans over all attendance revisions or overtime approvals.

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, BriefcaseBusiness, CalendarClock, CalendarRange, MapPin, ShieldCheck, UserRoundCog } from "lucide-react";
+import { Building2, BriefcaseBusiness, CalendarClock, CalendarHeart, CalendarRange, MapPin, TimerReset, ShieldCheck, UserRoundCog } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { getCurrentRole } from "@/features/employees/auth";
 
@@ -33,6 +33,22 @@ const settings = [
     title: "Attendance policy",
     description: "Manage effective-dated grace periods and attendance calculation rules.",
     icon: CalendarClock,
+    status: "Available",
+    restricted: true,
+  },
+  {
+    href: "/settings/overtime-policy",
+    title: "Overtime policy",
+    description: "Manage effective-dated minimum qualifying overtime minutes.",
+    icon: TimerReset,
+    status: "Available",
+    restricted: true,
+  },
+  {
+    href: "/settings/holidays",
+    title: "Holiday calendar",
+    description: "Create immutable regular, special non-working, and company holiday versions.",
+    icon: CalendarHeart,
     status: "Available",
     restricted: true,
   },
@@ -81,7 +97,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
     <div className="card settings-status-card">
       <div className="settings-icon"><ShieldCheck size={20} /></div>
-      <div><h2 className="card-title">Backend status</h2><p className="muted">Supabase authentication, employee management, departments, job titles, role checks, and soft-archive workflows are connected. Attendance and work schedules are connected. Leave, documents, and reports remain future phases.</p></div>
+      <div><h2 className="card-title">Backend status</h2><p className="muted">Supabase authentication, employee management, organization structure, work schedules, attendance calculations, holidays, overtime approvals, and attendance reports are connected. Leave, documents, notifications, and payroll remain future phases.</p></div>
     </div>
   </>;
 }

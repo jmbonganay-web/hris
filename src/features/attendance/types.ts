@@ -1,3 +1,4 @@
+import type { AttendanceOvertimeSummary } from "@/features/overtime/types";
 import type { ResolvedEmployeeSchedule } from "@/features/schedules/types";
 import type { ActiveAttendanceCalculation } from "@/features/attendance/calculations/types";
 
@@ -66,6 +67,7 @@ export type AttendanceRecord = {
   employee?: AttendanceEmployeeSummary | null;
   calculation?: ActiveAttendanceCalculation | null;
   is_calculation_only?: boolean;
+  overtime?: AttendanceOvertimeSummary[];
 };
 
 export type AttendanceCorrectionRequest = {

@@ -42,6 +42,7 @@ function calculationOnlyRecord(
     employee: employee ?? null,
     calculation,
     is_calculation_only: true,
+    overtime: [],
   };
 }
 
@@ -97,7 +98,12 @@ export function filterAttendanceDays(
 
   return records.filter((record) => {
     const calculation = record.calculation;
-    if (status === "absent" || status === "rest_day_worked" || status === "unscheduled_attendance") {
+    if (
+      status === "absent" ||
+      status === "holiday" ||
+      status === "rest_day_worked" ||
+      status === "unscheduled_attendance"
+    ) {
       return calculation?.base_status === status;
     }
     if (status === "missing_clock_out") {

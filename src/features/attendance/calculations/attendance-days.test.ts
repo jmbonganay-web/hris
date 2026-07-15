@@ -18,6 +18,10 @@ function calculation(overrides: Partial<ActiveAttendanceCalculation> = {}): Acti
     schedule_assignment_id: "assignment-1",
     schedule_version_id: "version-1",
     policy_version_id: "policy-1",
+    holiday_version_id: null,
+    holiday_name: null,
+    holiday_type: null,
+    is_holiday: false,
     base_status: "absent",
     is_provisional: false,
     scheduled_start_at: "2026-07-14T00:00:00.000Z",
@@ -85,4 +89,16 @@ test("attendance-day status filters include calculation-only statuses", () => {
   const rows = mergeAttendanceDays([], [calculation()]);
   assert.equal(filterAttendanceDays(rows, "absent").length, 1);
   assert.equal(filterAttendanceDays(rows, "completed").length, 0);
+});
+
+
+test("holiday filter returns holiday calculation-only rows", () => {
+  const holiday = calculation({
+    base_status: "holiday",
+    is_holiday: true,
+    holiday_name: "Company Foundation Day",
+    holiday_type: "company_holiday",
+  });
+  const rows = mergeAttendanceDays([], [holiday]);
+  assert.equal(filterAttendanceDays(rows, "holiday").length, 1);
 });

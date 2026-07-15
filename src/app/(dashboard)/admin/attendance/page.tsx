@@ -58,6 +58,7 @@ export default async function AdminAttendancePage({
         description="Review and correct employee attendance in Asia/Manila."
         action={(
           <div className="header-actions">
+            <Link className="btn" href="/admin/overtime">Overtime approvals</Link>
             <Link className="btn" href="/admin/attendance/corrections">Correction requests</Link>
             <Link className="btn" href="/admin/attendance/recalculate">Recalculate</Link>
             <Link className="btn" href="/admin/attendance/finalization">Finalization runs</Link>
@@ -86,7 +87,7 @@ export default async function AdminAttendancePage({
             <option value="missing_clock_out">Missing clock-out</option>
             <option value="corrected">Corrected</option>
           </select>
-          <select className="field" name="calculation_status" defaultValue={calculationStatus} aria-label="Calculation base status"><option value="">All calculation statuses</option><option value="present">Present</option><option value="absent">Absent</option><option value="missing_clock_out">Missing clock-out</option><option value="rest_day_worked">Rest day worked</option><option value="unscheduled_attendance">Unscheduled attendance</option></select>
+          <select className="field" name="calculation_status" defaultValue={calculationStatus} aria-label="Calculation base status"><option value="">All calculation statuses</option><option value="present">Present</option><option value="absent">Absent</option><option value="holiday">Holiday</option><option value="missing_clock_out">Missing clock-out</option><option value="rest_day_worked">Rest day worked</option><option value="unscheduled_attendance">Unscheduled attendance</option></select>
           <select className="field" name="late" defaultValue={late}><option value="">Late: any</option><option value="true">Late</option><option value="false">Not late</option></select>
           <select className="field" name="undertime" defaultValue={undertime}><option value="">Undertime: any</option><option value="true">Undertime</option><option value="false">No undertime</option></select>
           <select className="field" name="calculation_state" defaultValue={calculationState}><option value="">All calculation states</option><option value="provisional">Provisional</option><option value="finalized">Finalized</option></select>

@@ -44,3 +44,9 @@ test("employee calculation RPC normalizes blank date filters to null", () => {
   assert.doesNotMatch(source, /params\.fromDate \?\? null/);
   assert.doesNotMatch(source, /params\.toDate \?\? null/);
 });
+
+
+test("attendance calculation queries load holiday snapshots", () => {
+  assert.match(source, /holiday_version_id,holiday_name,holiday_type,is_holiday/);
+  assert.match(source, /is_holiday: Boolean\(row\.is_holiday\)/);
+});

@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 
 const sql = await readFile(
   new URL(
@@ -117,4 +118,68 @@ test("scheduled workday inputs are resolved before absence classification", () =
     scheduleConstruction < absenceBranch,
     "scheduled timestamps and minutes must be available to absence revisions",
   );
+});
+
+const phase5b2bMigration = readFileSync(
+  new URL("../../../../supabase/migrations/202607150002_overtime_holidays.sql", import.meta.url),
+  "utf8",
+).toLowerCase();
+
+test("phase 5b-2b snapshots holiday context on attendance revisions", () => {
+  assert.match(phase5b2bMigration, /add column if not exists holiday_version_id uuid/);
+  assert.match(phase5b2bMigration, /add column if not exists holiday_name text/);
+  assert.match(phase5b2bMigration, /add column if not exists holiday_type text/);
+  assert.match(phase5b2bMigration, /add column if not exists is_holiday boolean not null default false/);
+  assert.match(phase5b2bMigration, /check \(holiday_type is null or holiday_type in \(/);
+});
+
+test("holiday is resolved before absence and rest-day classification", () => {
+  const resolveAt = phase5b2bMigration.indexOf("from public.resolve_active_holiday(p_attendance_date)");
+  const holidayBranchAt = phase5b2bMigration.indexOf("if v_is_holiday then");
+  const normalBranchAt = phase5b2bMigration.indexOf("elsif not v_assignment_exists then");
+  assert.ok(resolveAt >= 0);
+  assert.ok(holidayBranchAt > resolveAt);
+  assert.ok(normalBranchAt > holidayBranchAt);
+  assert.match(
+    phase5b2bMigration,
+    /v_base_status := 'holiday';[\s\S]*v_worked_minutes := 0;[\s\S]*v_late_minutes := null;[\s\S]*v_undertime_minutes := null;/,
+  );
+});
+
+test("holiday work cannot retain late or undertime", () => {
+  assert.match(
+    phase5b2bMigration,
+    /if v_is_holiday then[\s\S]*v_late_minutes := null;[\s\S]*v_undertime_minutes := null;[\s\S]*v_is_late := false;[\s\S]*v_is_undertime := false;/,
+  );
+});
+
+test("attendance calculation invokes overtime only after writing the revision", () => {
+  const writeAt = phase5b2bMigration.indexOf(
+    "v_revision_id := public.write_attendance_calculation_revision(",
+  );
+  const overtimeAt = phase5b2bMigration.indexOf(
+    "perform public.calculate_overtime_for_attendance_day(",
+  );
+  assert.ok(writeAt >= 0);
+  assert.ok(overtimeAt > writeAt);
+});
+
+
+test("every attendance mutation path reaches overtime through the internal calculator", () => {
+  const internal = phase5b2bMigration.match(
+    /create or replace function public\.calculate_attendance_day_internal[\s\S]*?\$\$;/i,
+  )?.[0] ?? "";
+  assert.match(internal, /calculate_overtime_for_attendance_day/);
+  for (const source of [
+    "clock_in",
+    "clock_out",
+    "hr_create",
+    "hr_correction",
+    "correction_approval",
+    "daily_finalization",
+    "manual_recalculation",
+    "manual_finalization",
+  ]) {
+    assert.match(internal, new RegExp(`'${source}'`));
+  }
 });

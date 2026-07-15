@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { AttendanceOvertimeSummary } from "@/components/overtime/attendance-overtime-summary";
 import { formatAttendanceMinutes } from "@/features/attendance/calculations/presentation";
 import { formatCompanyDate, formatCompanyTime } from "@/features/attendance/time";
+import { holidayTypeLabel } from "@/features/overtime/presentation";
 import type { AttendanceRecord } from "@/features/attendance/types";
 import { AttendanceStatus } from "./attendance-status";
 import { CalculationStatus } from "./calculation-status";
@@ -29,7 +31,7 @@ export function AttendanceHistory({ records }: { records: AttendanceRecord[] }) 
                 <td>{metric(record.calculation?.worked_minutes)}</td>
                 <td>{metric(record.calculation?.late_minutes)}</td>
                 <td>{metric(record.calculation?.undertime_minutes)}</td>
-                <td>{record.calculation ? <CalculationStatus calculation={record.calculation} compact /> : <AttendanceStatus status={record.effective_status} corrected={record.is_corrected} />}</td>
+                <td><div className="attendance-status-stack">{record.calculation ? <CalculationStatus calculation={record.calculation} compact /> : <AttendanceStatus status={record.effective_status} corrected={record.is_corrected} />}<AttendanceOvertimeSummary items={record.overtime ?? []} compact />{record.calculation?.base_status === "holiday" && <div className="muted">Worked: 0 · No approval required</div>}{record.calculation?.is_holiday && record.calculation.actual_clock_out_at && <div className="muted">{holidayTypeLabel(record.calculation.holiday_type)} · Holiday work</div>}</div></td>
                 <td><Link className="table-link" href={record.is_calculation_only ? `/attendance/corrections/new?date=${record.attendance_date}` : `/attendance/corrections/new?record=${record.id}`}>Request correction</Link></td>
               </tr>
             ))}
@@ -43,6 +45,9 @@ export function AttendanceHistory({ records }: { records: AttendanceRecord[] }) 
               <strong>{formatCompanyDate(record.attendance_date)}</strong>
               {record.calculation ? <CalculationStatus calculation={record.calculation} compact /> : <AttendanceStatus status={record.effective_status} corrected={record.is_corrected} />}
             </div>
+            <AttendanceOvertimeSummary items={record.overtime ?? []} compact />
+            {record.calculation?.base_status === "holiday" && <div className="muted">Worked: 0 · No approval required</div>}
+            {record.calculation?.is_holiday && record.calculation.actual_clock_out_at && <div className="muted">{holidayTypeLabel(record.calculation.holiday_type)} · Holiday work</div>}
             <dl>
               <div><dt>Schedule</dt><dd>{record.calculation?.schedule_name ?? (record.calculation ? "Unassigned" : "—")}</dd></div>
               <div><dt>Clock in</dt><dd>{formatCompanyTime(record.clock_in_at)}</dd></div>

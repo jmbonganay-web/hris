@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   CalendarDays,
+  CalendarHeart,
   CalendarRange,
   ClipboardCheck,
   Clock3,
@@ -13,6 +14,7 @@ import {
   Megaphone,
   Settings,
   ShieldCheck,
+  TimerReset,
   Users,
 } from "lucide-react";
 
@@ -24,32 +26,45 @@ type NavigationItem = readonly [
 
 export function Sidebar({ role }: { role: string }) {
   const pathname = usePathname();
-  const attendanceItems: readonly NavigationItem[] = role === "hr_admin" || role === "super_admin"
-    ? [
-        ["/attendance", "My Attendance", Clock3],
-        ["/admin/attendance", "Attendance", Clock3],
-        ["/admin/attendance/corrections", "Correction Requests", ClipboardCheck],
-        ["/admin/attendance/recalculate", "Recalculate Attendance", CalendarRange],
-        ["/admin/attendance/finalization", "Finalization Runs", CalendarDays],
-        ["/settings/attendance-policy", "Attendance Policy", Settings],
-      ] as const
-    : [["/attendance", "My Attendance", Clock3]] as const;
-  const scheduleItems: readonly NavigationItem[] = role === "hr_admin" || role === "super_admin"
+  const isHr = role === "hr_admin" || role === "super_admin";
+  const attendanceItems: readonly NavigationItem[] =
+    isHr
+      ? [
+          ["/attendance", "My Attendance", Clock3],
+          ["/overtime", "My Overtime", TimerReset],
+          ["/admin/attendance", "Attendance", Clock3],
+          ["/admin/attendance/corrections", "Correction Requests", ClipboardCheck],
+          ["/admin/attendance/recalculate", "Recalculate Attendance", CalendarRange],
+          ["/admin/attendance/finalization", "Finalization Runs", CalendarDays],
+          ["/admin/overtime", "Overtime Approvals", TimerReset],
+          ["/admin/overtime/recalculate", "Recalculate Overtime", CalendarRange],
+          ["/settings/attendance-policy", "Attendance Policy", Settings],
+          ["/settings/overtime-policy", "Overtime Policy", TimerReset],
+          ["/settings/holidays", "Holidays", CalendarHeart],
+        ] as const
+      : [
+          ["/attendance", "My Attendance", Clock3],
+          ["/overtime", "My Overtime", TimerReset],
+        ] as const;
+  const scheduleItems: readonly NavigationItem[] = isHr
     ? [
         ["/my-schedule", "My Schedule", CalendarRange],
         ["/settings/work-schedules", "Work Schedules", CalendarRange],
       ] as const
     : [["/my-schedule", "My Schedule", CalendarRange]] as const;
+  const hrOnlyItems: readonly NavigationItem[] = isHr
+    ? [["/reports", "Reports", BarChart3]] as const
+    : [];
 
   const items: readonly NavigationItem[] = [
     ["/dashboard", "Dashboard", LayoutDashboard],
     ["/employees", "Employees", Users],
     ...attendanceItems,
     ...scheduleItems,
+    ...hrOnlyItems,
     ["/leave", "Leave", CalendarDays],
     ["/documents", "Documents", FileText],
     ["/announcements", "Announcements", Megaphone],
-    ["/reports", "Reports", BarChart3],
     ["/settings", "Settings", Settings],
   ];
 

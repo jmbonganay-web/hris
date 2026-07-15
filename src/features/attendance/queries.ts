@@ -4,6 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 import { companyDateAt, effectiveAttendanceStatus } from "./time";
 import { getResolvedEmployeeSchedule } from "@/features/schedules/queries";
 import {
+  getAdminActiveOvertimeSummaryMap,
+  getOwnActiveOvertimeSummaryMap,
+} from "@/features/overtime/queries";
+import {
   getAdminActiveCalculationRows,
   getOwnActiveCalculations,
 } from "./calculations/queries";
@@ -168,10 +172,14 @@ export async function getOwnAttendanceHistory(params: {
   if (params.fromDate) query = query.gte("attendance_date", params.fromDate);
   if (params.toDate) query = query.lte("attendance_date", params.toDate);
 
-  const [attendanceResult, calculationMap] = await Promise.all([
+  const [attendanceResult, calculationMap, overtimeMap] = await Promise.all([
     query,
     getOwnActiveCalculations({
       employeeId: params.employeeId,
+      fromDate: params.fromDate,
+      toDate: params.toDate,
+    }),
+    getOwnActiveOvertimeSummaryMap({
       fromDate: params.fromDate,
       toDate: params.toDate,
     }),
@@ -182,7 +190,10 @@ export async function getOwnAttendanceHistory(params: {
     mapAttendance(row as unknown as Record<string, unknown>, companyDate),
   );
   const merged = filterAttendanceDays(
-    mergeAttendanceDays(records, [...calculationMap.values()]),
+    mergeAttendanceDays(records, [...calculationMap.values()]).map((record) => ({
+      ...record,
+      overtime: overtimeMap.get(record.attendance_date) ?? [],
+    })),
     params.status,
   );
   const total = merged.length;
@@ -297,6 +308,15 @@ export async function getAdminAttendance(params: {
   const records = (attendanceResult.data ?? []).map((row) =>
     mapAttendance(row as unknown as Record<string, unknown>, companyDate),
   );
+  const summaryEmployeeIds = [...new Set([
+    ...records.map((record) => record.employee_id),
+    ...calculationRows.map((row) => row.calculation.employee_id),
+  ])];
+  const overtimeMap = await getAdminActiveOvertimeSummaryMap({
+    employeeIds: summaryEmployeeIds,
+    fromDate: params.date || undefined,
+    toDate: params.date || undefined,
+  });
   const employees = new Map<string, AttendanceEmployeeSummary>();
   for (const record of records) {
     if (record.employee) employees.set(record.employee_id, record.employee);
@@ -310,6 +330,11 @@ export async function getAdminAttendance(params: {
     calculationRows.map((row) => row.calculation),
     employees,
   );
+  merged = merged.map((record) => ({
+    ...record,
+    overtime:
+      overtimeMap.get(`${record.employee_id}:${record.attendance_date}`) ?? [],
+  }));
   merged = filterAttendanceDays(merged, params.status);
   merged = merged.filter((record) => {
     const calculation = record.calculation;
@@ -424,7 +449,7 @@ export async function getEmployeeAttendanceHistory(params: {
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
-  const [attendanceResult, calculationRows] = await Promise.all([
+  const [attendanceResult, calculationRows, overtimeMap] = await Promise.all([
     supabase
       .from("attendance_records")
       .select(attendanceSelect)
@@ -433,6 +458,7 @@ export async function getEmployeeAttendanceHistory(params: {
       .order("id", { ascending: false })
       .limit(5000),
     getAdminActiveCalculationRows({ employeeIds: [params.employeeId] }),
+    getAdminActiveOvertimeSummaryMap({ employeeIds: [params.employeeId] }),
   ]);
   if (attendanceResult.error) throw new Error("Unable to load employee attendance history.");
 
@@ -450,7 +476,11 @@ export async function getEmployeeAttendanceHistory(params: {
     records,
     calculationRows.map((row) => row.calculation),
     employees,
-  );
+  ).map((record) => ({
+    ...record,
+    overtime:
+      overtimeMap.get(`${record.employee_id}:${record.attendance_date}`) ?? [],
+  }));
   const total = merged.length;
 
   return {

@@ -54,3 +54,13 @@ test("attendance histories merge calculation-only days before pagination", () =>
   assert.match(source, /getAdminActiveCalculationRows/);
   assert.match(source, /merged\.slice\(from, to \+ 1\)/);
 });
+
+test("employee attendance history loads safe overtime summaries in parallel", () => {
+  assert.match(source, /getOwnActiveOvertimeSummaryMap/);
+  assert.match(source, /overtime:\s*overtimeMap\.get\(record\.attendance_date\)/);
+});
+
+test("admin attendance loads active overtime summaries by employee and date", () => {
+  assert.match(source, /getAdminActiveOvertimeSummaryMap/);
+  assert.match(source, /`\$\{record\.employee_id\}:\$\{record\.attendance_date\}`/);
+});

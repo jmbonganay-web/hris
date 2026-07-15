@@ -44,7 +44,7 @@ export default async function AttendancePage({
       <PageHeader
         title="My Attendance"
         description="Clock in, clock out, review your attendance, and request corrections."
-        action={<Link className="btn" href="/attendance/corrections">Correction requests</Link>}
+        action={(<div className="header-actions"><Link className="btn" href="/overtime">My overtime</Link><Link className="btn" href="/attendance/corrections">Correction requests</Link></div>)}
       />
 
       {success === "clocked_in" && <p className="form-success">You clocked in successfully.</p>}
@@ -65,6 +65,7 @@ export default async function AttendancePage({
             <option value="missing_clock_out">Missing clock-out</option>
             <option value="corrected">Corrected</option>
             <option value="absent">Absent</option>
+            <option value="holiday">Holiday</option>
             <option value="rest_day_worked">Rest day worked</option>
             <option value="unscheduled_attendance">Unscheduled attendance</option>
           </select>
