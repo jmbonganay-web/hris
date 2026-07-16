@@ -1,0 +1,1 @@
+export default function DocumentAdminLoading() { return <div className="content-stack" aria-busy="true" aria-label="Loading document administration"><div className="card skeleton-block" /><div className="document-summary-grid">{Array.from({ length: 4 }, (_, index) => <div className="card skeleton-block" key={index} />)}</div><div className="card skeleton-block" /></div>; }

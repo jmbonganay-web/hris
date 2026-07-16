@@ -253,9 +253,12 @@ test("storage policies authorize through the leave storage access helper", () =>
   }
 });
 
-test("production client source contains no service role secret or raw leave object path construction", () => {
+test("production client source contains no browser-exposed service role secret or raw leave object path construction", () => {
   for (const { filename, source } of productionSources) {
-    assert.doesNotMatch(source, /service_role|SUPABASE_SERVICE_ROLE_KEY/i, filename);
+    if (/service_role|SUPABASE_SERVICE_ROLE_KEY/i.test(source)) {
+      assert.match(source, /import ["']server-only["']/, `${filename} must be server-only`);
+      assert.match(filename, /src[\\/]lib[\\/]supabase[\\/]admin\.ts$/, `${filename} is not the approved admin client`);
+    }
     assert.doesNotMatch(
       source,
       /leave-documents\s*[`'\"]?\s*\/\s*\$?\{?(?:employee|employeeId|employee_id)/i,

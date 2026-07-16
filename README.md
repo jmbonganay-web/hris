@@ -33,8 +33,9 @@ A responsive HRIS application built with Next.js, TypeScript, and Supabase. The 
 - Effective-dated overtime thresholds, immutable holidays, overtime approvals, and employee overtime history
 - HR-only Operational and Payroll attendance reports with CSV and XLSX exports
 - Employee and HR leave management with effective-dated policies, immutable requests, balance ledger, attendance integration, and private documents
+- Employee document management with private storage, immutable versions, review workflows, compliance requirements, granular HR permissions, audit history, and in-app notifications
 
-Document management, dashboard analytics, notifications, and payroll computation remain future phases.
+Dashboard analytics, general announcements, and payroll computation remain future phases.
 
 ## Requirements
 
@@ -892,3 +893,64 @@ npm run build
 ```
 
 Before production deployment, apply the migration in a preview Supabase project, confirm `leave-documents` is private, and complete employee and HR workflow checks.
+
+### Phase 7 document storage environment
+
+Employee document upload verification and signed file access use `SUPABASE_SERVICE_ROLE_KEY` only in the trusted Next.js server runtime. Never prefix this variable with `NEXT_PUBLIC_`, expose it to browser code, return it from an API, or include it in logs. The browser receives only short-lived, object-scoped signed upload or access tickets.
+
+## Phase 7 employee document management
+
+Apply Phase 7 only after the complete Phase 6 migration sequence. The primary migration is:
+
+```text
+supabase/migrations/202607170001_employee_document_management.sql
+```
+
+It must be applied after:
+
+```text
+supabase/migrations/202607160004_fix_employee_manager_summary.sql
+```
+
+### Deployment and operating procedure
+
+1. Configure `SUPABASE_SERVICE_ROLE_KEY` only in the trusted server environment.
+2. Apply `supabase/migrations/202607170001_employee_document_management.sql` after `202607160004_fix_employee_manager_summary.sql`.
+3. Confirm the `employee-documents` storage bucket exists and `public = false`.
+4. Confirm authenticated users cannot list arbitrary `employee-documents` objects.
+5. Grant `documents.review` and `documents.manage` only to selected HR Admin users.
+6. Review and revise the seeded category configurations before production use.
+7. Create requirement rules and confirm employee, job-title, department, employment-type, and all-active-employee precedence on sample employees.
+8. Test employee upload, HR upload, review, replacement, archive, restoration, and permanent-deletion cleanup.
+9. Keep service-role values, raw storage paths, signed URLs, review reasons, and sensitive metadata out of logs.
+10. Use forward-only patch migrations for defects discovered after the primary migration has been applied.
+
+### File and access limits
+
+- Supported formats are PDF, JPG/JPEG, PNG, and DOCX.
+- Each file is limited to 15 MB.
+- Each upload session accepts no more than 10 files.
+- Upload sessions use a 10-minute lifetime; finalization after expiry is rejected.
+- Signed preview and download URLs use a 60-second lifetime.
+- PDF, JPG/JPEG, and PNG support preview and download. DOCX is download-only.
+- Files remain in the private `employee-documents` bucket. Browser clients receive only object-scoped signed upload tickets or authorized signed access URLs.
+- Every access-link issuance is authorized and audited without storing raw paths or signed URLs in audit payloads.
+
+### Roles, review, and notifications
+
+- Employees can view their own safe requirement status, upload to enabled categories, submit drafts, and see employee-safe review messages.
+- HR Admin document permissions are independent: `documents.review` does not imply `documents.manage`, and `documents.manage` does not imply `documents.review`.
+- Super Admins implicitly have both permissions and are the only users who can grant or revoke document permissions, use Super Admin-only visibility, or permanently delete a document.
+- Managers receive aggregate compliance counts for current direct reports only; they do not receive document files or sensitive metadata.
+- Phase 7 notifications are in-app and event-driven. Scheduled expiration reminders, email, SMS, and push delivery are outside this phase.
+
+### Verification before deployment
+
+```bash
+npm ci
+npm test
+npx tsc --noEmit
+npm run build
+```
+
+Before enabling uploads in production, apply the migration in a preview or local Supabase environment and confirm the bucket is private, protected functions use `SECURITY DEFINER` with a fixed search path, and arbitrary storage listing is denied.

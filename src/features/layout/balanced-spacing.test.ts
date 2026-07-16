@@ -71,3 +71,23 @@ test("sidebar handles long navigation without exposing a short dark rail", () =>
   assert.match(css, /\.sidebar\s*\{[\s\S]*?overflow-y:\s*auto/);
   assert.match(css, /\.sidebar\s*\{[\s\S]*?overscroll-behavior:\s*contain/);
 });
+
+test("document layouts use the shared balanced spacing system", () => {
+  for (const className of [
+    "document-portal-grid", "document-summary-grid", "document-filter-grid",
+    "document-upload-form", "document-requirement-grid", "document-admin-quick-links",
+    "document-detail-grid", "document-version-list", "document-review-layout",
+    "document-field-builder", "manager-document-compliance-grid",
+  ]) assert.match(css, new RegExp(`\\.${className}\\s*\\{`));
+  assert.match(css, /document-portal-grid[\s\S]*gap:\s*var\(--space-section\)/);
+});
+
+test("document pages restore missing stack, form, card, and permission spacing", () => {
+  assert.match(css, /\.content-stack\s*\{[\s\S]*?display:\s*grid;[\s\S]*?gap:\s*var\(--space-card\)/);
+  assert.match(css, /\.section-heading\s*\{[\s\S]*?display:\s*flex;[\s\S]*?gap:\s*var\(--space-card\)/);
+  assert.match(css, /\.block\s*\{[\s\S]*?display:\s*block/);
+  assert.match(css, /\.document-upload-form[\s\S]*?label:not\(\.checkbox-row\)[\s\S]*?\{[\s\S]*?display:\s*grid;[\s\S]*?gap:\s*var\(--space-compact\)/);
+  assert.match(css, /\.document-category-form[\s\S]*?\.field[\s\S]*?\{[\s\S]*?width:\s*100%/);
+  assert.match(css, /\.document-requirement-grid\s*>\s*\.card[\s\S]*?\{[\s\S]*?display:\s*grid;[\s\S]*?gap:\s*var\(--space-card\)/);
+  assert.match(css, /\.permission-control\s*\{[\s\S]*?display:\s*grid;[\s\S]*?grid-template-columns:/);
+});

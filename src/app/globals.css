@@ -1437,3 +1437,405 @@ a.settings-card:hover { border-color: #bfdbfe; transform: translateY(-1px); box-
     margin-inline: -2px;
   }
 }
+
+/* Phase 7 employee document management layouts */
+.content-stack {
+  display: grid;
+  gap: var(--space-card);
+  align-content: start;
+  min-width: 0;
+}
+
+.section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-card);
+  min-width: 0;
+}
+
+.section-heading h2,
+.section-heading h3 {
+  margin: 0 0 6px;
+}
+
+.section-heading p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.block {
+  display: block;
+}
+
+.document-filter-grid label,
+.document-upload-form label:not(.checkbox-row),
+.document-category-form label:not(.checkbox-row),
+.document-requirement-form label:not(.checkbox-row),
+.document-review-form label:not(.radio-row),
+.document-lifecycle-form label:not(.checkbox-row) {
+  display: grid;
+  gap: var(--space-compact);
+  min-width: 0;
+  align-content: start;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.document-filter-grid .field,
+.document-upload-form .field,
+.document-category-form .field,
+.document-requirement-form .field,
+.document-review-form .field,
+.document-lifecycle-form .field {
+  width: 100%;
+  min-width: 0;
+  font-weight: 400;
+}
+
+.document-filter-grid .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.document-category-form fieldset,
+.document-review-form fieldset {
+  display: grid;
+  gap: var(--space-related);
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-related);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.document-category-form legend,
+.document-review-form legend {
+  padding: 0 6px;
+  font-weight: 700;
+}
+
+.document-category-form .checkbox-grid {
+  display: grid;
+  gap: var(--space-compact);
+}
+
+.document-requirement-grid > .card {
+  display: grid;
+  gap: var(--space-card);
+  align-content: start;
+}
+
+.document-portal-grid > .content-stack > article.card,
+.document-version-list > article.card {
+  display: grid;
+  gap: var(--space-card);
+  align-content: start;
+}
+
+.document-requirement-grid > .card .btn {
+  justify-self: start;
+}
+
+.document-requirement-grid .card-header-row > div,
+.document-version-list > article.card .card-header-row > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.card-header-row + .document-upload-form,
+.card-header-row + .document-version-list,
+.card-header-row + .table-wrap,
+.card-header-row + .document-mobile-list,
+.card-header-row + .empty-state {
+  margin-top: var(--space-card);
+}
+
+.document-category-form .card-header-row h2,
+.document-category-form .card-header-row h3,
+.document-requirement-form > h2,
+.document-review-form .card-header-row h2 {
+  margin: 0;
+}
+
+.document-category-form .card-header-row p,
+.document-review-form .card-header-row p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.permission-control {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) auto auto;
+  gap: var(--space-related);
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-related) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.permission-control:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.permission-control > .checkbox-row,
+.permission-control > .form-error,
+.permission-control > .form-success {
+  grid-column: 1 / -1;
+}
+
+.permission-control .btn {
+  justify-self: end;
+}
+.document-portal-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(300px, .8fr);
+  gap: var(--space-section);
+  align-items: start;
+}
+
+.document-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-card);
+}
+
+.document-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-related);
+  align-items: end;
+}
+
+.document-upload-form {
+  display: grid;
+  gap: var(--space-card);
+}
+
+.document-detail-grid {
+  display: grid;
+  gap: var(--space-card);
+}
+
+.document-review-layout {
+  display: grid;
+  gap: var(--space-card);
+}
+
+.document-requirement-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-card);
+}
+
+.document-admin-quick-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-card);
+}
+
+.manager-document-compliance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-card);
+}
+
+.document-version-list {
+  display: grid;
+  gap: var(--space-related);
+}
+
+.document-field-builder {
+  display: grid;
+  grid-template-columns: 1.1fr 1.3fr .8fr auto;
+  gap: var(--space-related);
+  align-items: end;
+}
+
+.document-summary-grid > .card,
+.document-requirement-grid > .card,
+.manager-document-compliance-grid > .card,
+.document-admin-record,
+.document-version-item {
+  min-width: 0;
+}
+
+.document-admin-quick-links .card {
+  display: grid;
+  align-content: start;
+  gap: var(--space-compact);
+  min-height: 112px;
+}
+
+.document-detail-panel,
+.document-category-form,
+.document-requirement-form,
+.document-review-form,
+.document-admin-record,
+.document-lifecycle-form {
+  display: grid;
+  gap: var(--space-card);
+}
+
+.document-version-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: var(--space-related);
+  align-items: start;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.document-version-item > p,
+.document-version-item > .button-row,
+.document-version-item > form,
+.document-version-item > details {
+  grid-column: 1 / -1;
+}
+
+.document-selected-files {
+  display: grid;
+  gap: var(--space-compact);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.document-selected-files li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-related);
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  overflow-wrap: anywhere;
+}
+
+.document-upload-progress {
+  display: grid;
+  gap: var(--space-compact);
+}
+
+.document-upload-progress progress {
+  width: 100%;
+  min-height: 10px;
+}
+
+.document-mobile-list {
+  display: none;
+}
+
+.document-mobile-card {
+  display: grid;
+  gap: var(--space-related);
+}
+
+.document-lifecycle-form,
+.permission-control {
+  min-width: 0;
+}
+
+.full-span {
+  grid-column: 1 / -1;
+}
+
+.data-preview {
+  max-width: 100%;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-related);
+  align-items: center;
+}
+
+.radio-group {
+  display: grid;
+  gap: var(--space-compact);
+}
+
+.radio-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-compact);
+}
+
+@media (max-width: 1100px) {
+  .document-summary-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .document-portal-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .document-summary-grid,
+  .document-filter-grid,
+  .document-requirement-grid,
+  .document-admin-quick-links,
+  .manager-document-compliance-grid,
+  .document-detail-grid,
+  .document-review-layout,
+  .document-field-builder,
+  .document-version-item {
+    grid-template-columns: 1fr;
+  }
+
+  .document-desktop-table {
+    display: none;
+  }
+
+  .document-mobile-list {
+    display: grid;
+    gap: var(--space-related);
+  }
+
+  .document-filter-grid .btn,
+  .document-upload-form .btn,
+  .document-lifecycle-form .btn,
+  .document-review-form .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .document-version-item > * {
+    grid-column: 1;
+  }
+
+  .document-selected-files li,
+  .button-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .section-heading,
+  .permission-control {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .section-heading {
+    flex-direction: column;
+  }
+
+  .permission-control > *,
+  .permission-control .btn,
+  .document-requirement-grid > .card .btn {
+    width: 100%;
+    justify-self: stretch;
+    justify-content: center;
+  }
+}
