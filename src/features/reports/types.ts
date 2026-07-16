@@ -1,4 +1,10 @@
 import type { AttendanceCalculationBaseStatus } from "@/features/attendance/calculations/types";
+import type {
+  LeaveConflictStatus,
+  LeaveConflictType,
+  LeaveDurationMode,
+  LeaveRequestStatus,
+} from "@/features/leave/types";
 import type { HolidayType } from "@/features/overtime/holidays/types";
 import type {
   OvertimeApprovalStatus,
@@ -6,14 +12,26 @@ import type {
 } from "@/features/overtime/types";
 
 export type ReportMode = "operational" | "payroll";
-export type ReportTab = "summary" | "daily" | "exceptions" | "overtime" | "exports";
+export type ReportTab =
+  | "summary"
+  | "daily"
+  | "exceptions"
+  | "overtime"
+  | "leave_balances"
+  | "leave_usage"
+  | "leave_conflicts"
+  | "exports";
 export type ReportCalculationState = "finalized" | "provisional";
 export type ReportPageSize = 25 | 50 | 100;
 export type ReportExportDataset =
   | "daily"
   | "employee_summary"
   | "exceptions"
-  | "overtime_holiday";
+  | "overtime_holiday"
+  | "leave_balances"
+  | "leave_usage"
+  | "leave_conflicts";
+export type LeavePaidStateFilter = "paid" | "unpaid";
 export type ReportExportFormat = "csv" | "xlsx";
 export type AttendanceExceptionType =
   | "absent"
@@ -39,6 +57,11 @@ export type ReportFilters = {
   segmentType: OvertimeSegmentType | null;
   approvalStatus: OvertimeApprovalStatus | null;
   holidayType: HolidayType | null;
+  leaveTypeId: string | null;
+  leaveStatus: LeaveRequestStatus | null;
+  leavePaidState: LeavePaidStateFilter | null;
+  leaveConflictType: LeaveConflictType | null;
+  leaveConflictStatus: LeaveConflictStatus | null;
   page: number;
   pageSize: ReportPageSize;
 };
@@ -49,6 +72,8 @@ export type ReportSummaryMetrics = {
   present_days: number;
   absent_days: number;
   holiday_days: number;
+  paid_leave_days: number;
+  unpaid_leave_days: number;
   missing_clock_out_days: number;
   rest_day_worked_days: number;
   unscheduled_attendance_days: number;
@@ -130,6 +155,8 @@ export type EmployeeAttendanceSummaryRow = {
   present_days: number;
   absent_days: number;
   holiday_days: number;
+  paid_leave_days: number;
+  unpaid_leave_days: number;
   missing_clock_out_days: number;
   rest_day_worked_days: number;
   unscheduled_attendance_days: number;
@@ -218,6 +245,64 @@ export type OvertimeHolidayReportRow = {
   total_count: number;
 };
 
+export type LeaveBalanceReportRow = {
+  employee_id: string;
+  employee_number: string;
+  employee_name: string;
+  department_id: string | null;
+  department_name: string | null;
+  leave_type_id: string;
+  leave_type_name: string;
+  leave_year: number;
+  allocated_units: number;
+  carryover_units: number;
+  adjustment_units: number;
+  used_units: number;
+  pending_units: number;
+  available_units: number;
+  carryover_expires: string | null;
+  total_count: number;
+};
+
+export type LeaveUsageReportRow = {
+  request_group_id: string;
+  employee_id: string;
+  employee_number: string;
+  employee_name: string;
+  department_id: string | null;
+  department_name: string | null;
+  leave_type_id: string;
+  leave_type_name: string;
+  paid_state: LeavePaidStateFilter;
+  start_date: string;
+  end_date: string;
+  duration_mode: LeaveDurationMode;
+  status: LeaveRequestStatus;
+  requested_units: number;
+  chargeable_units: number;
+  submitted_at: string | null;
+  reviewed_at: string | null;
+  total_count: number;
+};
+
+export type LeaveConflictReportRow = {
+  conflict_id: string;
+  employee_id: string;
+  employee_number: string;
+  employee_name: string;
+  department_id: string | null;
+  department_name: string | null;
+  leave_type_id: string;
+  leave_type_name: string;
+  leave_date: string;
+  conflict_type: LeaveConflictType;
+  conflict_status: LeaveConflictStatus;
+  attendance_status: string | null;
+  balance_action: string | null;
+  created_at: string;
+  total_count: number;
+};
+
 export type PaginatedReport<T> = {
   rows: T[];
   page: number;
@@ -228,6 +313,7 @@ export type PaginatedReport<T> = {
 
 export type ReportFilterOptions = {
   departments: Array<{ id: string; name: string }>;
+  leaveTypes: Array<{ id: string; name: string }>;
   employees: Array<{
     id: string;
     employee_number: string;

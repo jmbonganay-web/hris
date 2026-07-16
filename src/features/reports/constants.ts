@@ -4,7 +4,10 @@ export const PAYROLL_MAX_DAYS = 366;
 export const REPORT_EXPORT_ROW_LIMIT = 25_000;
 export const reportPageSizes = [25, 50, 100] as const;
 export const reportModes = ["operational", "payroll"] as const;
-export const reportTabs = ["summary", "daily", "exceptions", "overtime", "exports"] as const;
+export const reportTabs = [
+  "summary", "daily", "exceptions", "overtime",
+  "leave_balances", "leave_usage", "leave_conflicts", "exports",
+] as const;
 export const reportCalculationStates = ["finalized", "provisional"] as const;
 export const reportEmploymentStatuses = ["active", "probation", "on_leave", "inactive", "terminated"] as const;
 export const attendanceExceptionTypes = [

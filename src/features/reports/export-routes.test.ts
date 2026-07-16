@@ -41,3 +41,11 @@ test("spreadsheet dependency remains outside client components and files stay in
     assert.doesNotMatch(source, /writeFile|createWriteStream|tmpdir|supabase\.storage|\.storage\./i);
   }
 });
+
+
+test("export routes whitelist leave datasets", () => {
+  for (const dataset of ["leave_balances", "leave_usage", "leave_conflicts"]) {
+    assert.match(csvRoute, new RegExp(dataset));
+    assert.match(xlsxRoute, new RegExp(dataset));
+  }
+});

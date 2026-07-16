@@ -20,6 +20,8 @@ export function attendanceBaseStatusLabel(
     present: "Present",
     absent: "Absent",
     holiday: "Holiday",
+    paid_leave: "Paid leave",
+    unpaid_leave: "Unpaid leave",
     missing_clock_out: "Missing clock-out",
     rest_day_worked: "Rest day worked",
     unscheduled_attendance: "Unscheduled attendance",

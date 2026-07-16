@@ -877,3 +877,137 @@ a.settings-card:hover { border-color: #bfdbfe; transform: translateY(-1px); box-
   .report-pagination { align-items: stretch; flex-direction: column; text-align: center; }
   .report-pagination .btn { width: 100%; justify-content: center; }
 }
+
+/* Phase 6: employee leave workspace */
+.leave-balance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.leave-balance-card { display: grid; gap: 12px; }
+.split-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.split-row h2, .leave-attachment-uploader h2 { margin: 0; font-size: 17px; }
+.metric-value { font-size: 26px; }
+.compact-definition-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin: 0; }
+.compact-definition-list > div { min-width: 0; padding: 10px; border-radius: 10px; background: var(--surface-2); }
+.compact-definition-list dt { color: var(--muted); font-size: 12px; }
+.compact-definition-list dd { margin: 4px 0 0; font-weight: 700; overflow-wrap: anywhere; }
+.leave-calendar-section { margin-bottom: 18px; }
+.leave-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.leave-calendar-weekday { padding: 9px; color: var(--muted); background: var(--surface-2); border-bottom: 1px solid var(--border); font-size: 12px; font-weight: 700; text-align: center; }
+.leave-calendar-day { min-height: 118px; min-width: 0; padding: 8px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.leave-calendar-day:nth-child(7n) { border-right: 0; }
+.leave-calendar-day.empty { background: var(--surface-2); padding: 0; }
+.leave-calendar-day time { display: block; margin-bottom: 7px; color: var(--muted); font-size: 12px; font-weight: 700; }
+.leave-calendar-events { display: grid; gap: 5px; }
+.leave-calendar-event { display: grid; gap: 2px; min-width: 0; padding: 6px; border-radius: 7px; background: var(--primary-soft); color: var(--primary); font-size: 11px; }
+.leave-calendar-event strong, .leave-calendar-event span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.leave-calendar-event.status-approved { background: #ecfdf5; color: #047857; }
+.leave-calendar-event.status-pending { background: #fffbeb; color: #b45309; }
+.leave-calendar-event.status-rejected,
+.leave-calendar-event.status-cancelled,
+.leave-calendar-event.status-withdrawn,
+.leave-calendar-event.status-superseded { background: #f3f4f6; color: #4b5563; }
+.badge.status-draft { color: #1d4ed8; background: #eff6ff; }
+.badge.status-pending { color: #b45309; background: #fffbeb; }
+.badge.status-approved { color: #047857; background: #ecfdf5; }
+.badge.status-rejected,
+.badge.status-withdrawn,
+.badge.status-cancelled,
+.badge.status-superseded { color: #4b5563; background: #f3f4f6; }
+.table-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.leave-request-workspace, .leave-request-form { display: grid; gap: 18px; }
+.leave-request-form > label { display: grid; gap: 7px; font-size: 13px; font-weight: 700; }
+.leave-request-form textarea { resize: vertical; }
+.subtle-card { background: var(--surface-2); }
+.leave-attachment-uploader { display: grid; gap: 14px; }
+.attachment-list, .timeline-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.attachment-list li { padding: 10px 0; border-bottom: 1px solid var(--border); }
+.attachment-list li:last-child { border-bottom: 0; }
+.attachment-list a { color: var(--primary); font-weight: 700; overflow-wrap: anywhere; }
+.private-note { margin-top: 16px; padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); white-space: pre-wrap; overflow-wrap: anywhere; }
+.private-note h3 { margin: 0 0 7px; font-size: 14px; }
+.private-note p { margin: 0; line-height: 1.6; }
+.timeline-list li { display: grid; gap: 4px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.timeline-list li:last-child { border-bottom: 0; }
+.timeline-list span { color: var(--muted); font-size: 12px; }
+.timeline-list p { margin: 5px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.skeleton-heading { width: min(260px, 70%); height: 26px; margin-bottom: 10px; }
+.skeleton-line { width: min(420px, 90%); height: 14px; }
+.skeleton-block { width: 100%; height: 220px; }
+.skeleton-card { min-height: 150px; margin-bottom: 18px; }
+
+@media (max-width: 760px) {
+  .leave-calendar-grid { min-width: 720px; }
+  .leave-calendar-section { overflow-x: auto; }
+  .leave-calendar-section > .section-heading-row { min-width: 720px; }
+  .leave-request-form .form-actions,
+  .table-actions { align-items: stretch; flex-direction: column; }
+  .leave-request-form .form-actions .btn,
+  .table-actions .btn,
+  .table-actions form { width: 100%; justify-content: center; }
+  .split-row { align-items: stretch; flex-direction: column; }
+}
+
+
+/* Phase 6: leave detail, review, and mobile refinements */
+.leave-balance-card .metric-value {
+  display: block;
+  margin-top: 0.75rem;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+}
+
+.leave-preview-grid,
+.leave-review-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.leave-file-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (max-width: 800px) {
+  .leave-preview-grid,
+  .leave-review-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .leave-calendar-section {
+    overflow-x: visible;
+  }
+
+  .leave-calendar-section > .section-heading-row {
+    min-width: 0;
+  }
+
+  .leave-calendar-grid {
+    display: block;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .leave-calendar-weekday {
+    display: none;
+  }
+
+  .leave-calendar-day {
+    min-height: auto;
+    margin-bottom: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 0.65rem;
+    background: var(--surface);
+  }
+
+  .leave-calendar-day.empty {
+    display: none;
+  }
+}

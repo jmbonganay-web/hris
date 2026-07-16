@@ -1,4 +1,5 @@
 import { attendanceCalculationBaseStatuses } from "../attendance/calculations/types.ts";
+import { leaveConflictTypes, leaveRequestStatuses } from "../leave/types.ts";
 import { holidayTypes } from "../overtime/holidays/types.ts";
 import { overtimeApprovalStatuses, overtimeSegmentTypes } from "../overtime/types.ts";
 import {
@@ -42,6 +43,13 @@ function accepted<T extends readonly string[]>(value: string, allowed: T): T[num
   return allowed.includes(value as T[number]) ? (value as T[number]) : null;
 }
 
+function optionalAccepted<T extends readonly string[]>(value: string, allowed: T): T[number] | null {
+  if (!value) return null;
+  const result = accepted(value, allowed);
+  if (!result) throw new Error("The selected report filter is invalid.");
+  return result;
+}
+
 export function parseReportFilters(raw: RawSearch, today: string): ReportFilters {
   const defaultStart = `${today.slice(0, 7)}-01`;
   const mode = accepted(one(raw.mode), reportModes) ?? "payroll";
@@ -82,6 +90,11 @@ export function parseReportFilters(raw: RawSearch, today: string): ReportFilters
     segmentType: accepted(one(raw.segment_type), overtimeSegmentTypes),
     approvalStatus: accepted(one(raw.approval_status), overtimeApprovalStatuses),
     holidayType: accepted(one(raw.holiday_type), holidayTypes),
+    leaveTypeId: optionalUuid(one(raw.leave_type)),
+    leaveStatus: optionalAccepted(one(raw.leave_status), leaveRequestStatuses),
+    leavePaidState: optionalAccepted(one(raw.leave_paid_state), ["paid", "unpaid"] as const),
+    leaveConflictType: optionalAccepted(one(raw.leave_conflict_type), leaveConflictTypes),
+    leaveConflictStatus: optionalAccepted(one(raw.leave_conflict_status), ["open", "resolved", "superseded"] as const),
     page: Math.max(1, Number(one(raw.page) || "1") || 1),
     pageSize,
   };
@@ -105,6 +118,11 @@ export function serializeReportFilters(filters: ReportFilters): URLSearchParams 
   if (filters.segmentType) params.set("segment_type", filters.segmentType);
   if (filters.approvalStatus) params.set("approval_status", filters.approvalStatus);
   if (filters.holidayType) params.set("holiday_type", filters.holidayType);
+  if (filters.leaveTypeId) params.set("leave_type", filters.leaveTypeId);
+  if (filters.leaveStatus) params.set("leave_status", filters.leaveStatus);
+  if (filters.leavePaidState) params.set("leave_paid_state", filters.leavePaidState);
+  if (filters.leaveConflictType) params.set("leave_conflict_type", filters.leaveConflictType);
+  if (filters.leaveConflictStatus) params.set("leave_conflict_status", filters.leaveConflictStatus);
   params.set("page", String(filters.page));
   params.set("page_size", String(filters.pageSize));
   return params;

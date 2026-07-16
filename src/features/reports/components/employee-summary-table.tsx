@@ -14,7 +14,7 @@ export function EmployeeSummaryTable({ result }: { result: PaginatedReport<Emplo
               <tr key={row.employee_id}>
                 <td><strong>{row.employee_number} · {row.employee_name}</strong><span className="muted table-subtext">{row.department_name ?? "No department"} · {row.job_title_name ?? "No job title"}</span>{row.employee_day_records === 0 && <span className="muted table-subtext">No reportable records</span>}</td>
                 <td><StatusBadge value={row.employment_status} /></td>
-                <td>{row.employee_day_records} records<br /><span className="muted">{row.present_days} present · {row.absent_days} absent · {row.holiday_days} holiday</span></td>
+                <td>{row.employee_day_records} records<br /><span className="muted">{row.present_days} present · {row.absent_days} absent · {row.holiday_days} holiday · {row.paid_leave_days} paid leave · {row.unpaid_leave_days} unpaid leave</span></td>
                 <td>{row.worked_duration}</td>
                 <td>{row.late_duration} / {row.undertime_duration}</td>
                 <td>{row.total_approved_overtime_duration}<span className="muted table-subtext">Pre {row.approved_pre_shift_duration} · Post {row.approved_post_shift_duration} · Rest {row.approved_rest_day_duration}</span></td>

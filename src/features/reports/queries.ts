@@ -1,11 +1,15 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { REPORT_EXPORT_ROW_LIMIT } from "./constants";
 import { formatReportDuration, formatReportTimestamp } from "./formatters";
 import type {
   AttendanceExceptionReportRow,
   DailyAttendanceReportRow,
   EmployeeAttendanceSummaryRow,
+  LeaveBalanceReportRow,
+  LeaveConflictReportRow,
+  LeaveUsageReportRow,
   OvertimeHolidayReportRow,
   PaginatedReport,
   ReportFilterOptions,
@@ -81,6 +85,8 @@ function mapSummary(row: Record<string, unknown> | undefined): ReportSummaryMetr
     present_days: requiredNumber(value.present_days),
     absent_days: requiredNumber(value.absent_days),
     holiday_days: requiredNumber(value.holiday_days),
+    paid_leave_days: requiredNumber(value.paid_leave_days),
+    unpaid_leave_days: requiredNumber(value.unpaid_leave_days),
     missing_clock_out_days: requiredNumber(value.missing_clock_out_days),
     rest_day_worked_days: requiredNumber(value.rest_day_worked_days),
     unscheduled_attendance_days: requiredNumber(value.unscheduled_attendance_days),
@@ -196,6 +202,8 @@ function mapEmployeeSummary(row: Record<string, unknown>): EmployeeAttendanceSum
     present_days: requiredNumber(row.present_days),
     absent_days: requiredNumber(row.absent_days),
     holiday_days: requiredNumber(row.holiday_days),
+    paid_leave_days: requiredNumber(row.paid_leave_days),
+    unpaid_leave_days: requiredNumber(row.unpaid_leave_days),
     missing_clock_out_days: requiredNumber(row.missing_clock_out_days),
     rest_day_worked_days: requiredNumber(row.rest_day_worked_days),
     unscheduled_attendance_days: requiredNumber(row.unscheduled_attendance_days),
@@ -298,23 +306,117 @@ function mapOvertime(row: Record<string, unknown>): OvertimeHolidayReportRow {
   };
 }
 
+function mapLeaveBalance(row: Record<string, unknown>): LeaveBalanceReportRow {
+  return {
+    employee_id: String(row.employee_id),
+    employee_number: String(row.employee_number),
+    employee_name: String(row.employee_name),
+    department_id: nullableString(row.department_id),
+    department_name: nullableString(row.department_name),
+    leave_type_id: String(row.leave_type_id),
+    leave_type_name: String(row.leave_type_name),
+    leave_year: requiredNumber(row.leave_year),
+    allocated_units: requiredNumber(row.allocated_units),
+    carryover_units: requiredNumber(row.carryover_units),
+    adjustment_units: requiredNumber(row.adjustment_units),
+    used_units: requiredNumber(row.used_units),
+    pending_units: requiredNumber(row.pending_units),
+    available_units: requiredNumber(row.available_units),
+    carryover_expires: nullableString(row.carryover_expires),
+    total_count: requiredNumber(row.total_count),
+  };
+}
+
+function mapLeaveUsage(row: Record<string, unknown>): LeaveUsageReportRow {
+  return {
+    request_group_id: String(row.request_group_id),
+    employee_id: String(row.employee_id),
+    employee_number: String(row.employee_number),
+    employee_name: String(row.employee_name),
+    department_id: nullableString(row.department_id),
+    department_name: nullableString(row.department_name),
+    leave_type_id: String(row.leave_type_id),
+    leave_type_name: String(row.leave_type_name),
+    paid_state: row.paid_state as LeaveUsageReportRow["paid_state"],
+    start_date: String(row.start_date),
+    end_date: String(row.end_date),
+    duration_mode: row.duration_mode as LeaveUsageReportRow["duration_mode"],
+    status: row.status as LeaveUsageReportRow["status"],
+    requested_units: requiredNumber(row.requested_units),
+    chargeable_units: requiredNumber(row.chargeable_units),
+    submitted_at: nullableTimestamp(row.submitted_at),
+    reviewed_at: nullableTimestamp(row.reviewed_at),
+    total_count: requiredNumber(row.total_count),
+  };
+}
+
+function mapLeaveConflict(row: Record<string, unknown>): LeaveConflictReportRow {
+  return {
+    conflict_id: String(row.conflict_id),
+    employee_id: String(row.employee_id),
+    employee_number: String(row.employee_number),
+    employee_name: String(row.employee_name),
+    department_id: nullableString(row.department_id),
+    department_name: nullableString(row.department_name),
+    leave_type_id: String(row.leave_type_id),
+    leave_type_name: String(row.leave_type_name),
+    leave_date: String(row.leave_date),
+    conflict_type: row.conflict_type as LeaveConflictReportRow["conflict_type"],
+    conflict_status: row.conflict_status as LeaveConflictReportRow["conflict_status"],
+    attendance_status: nullableString(row.attendance_status),
+    balance_action: nullableString(row.balance_action),
+    created_at: formatReportTimestamp(String(row.created_at)),
+    total_count: requiredNumber(row.total_count),
+  };
+}
+
+function leavePaginationArgs(filters: ReportFilters, exportMode: boolean) {
+  return {
+    p_offset: exportMode ? 0 : (filters.page - 1) * filters.pageSize,
+    p_limit: exportMode ? REPORT_EXPORT_ROW_LIMIT : filters.pageSize,
+  };
+}
+
+function enforceLeaveExportLimit<T extends { total_count: number }>(rows: T[], exportMode: boolean): void {
+  if (exportMode && (rows[0]?.total_count ?? 0) > REPORT_EXPORT_ROW_LIMIT) {
+    throw reportError({ message: "REPORT_ROW_LIMIT" });
+  }
+}
+
 export async function getReportFilterOptions(): Promise<ReportFilterOptions> {
   const supabase = await createClient();
   const [
     { data: departments, error: departmentError },
     { data: employees, error: employeeError },
+    { data: leaveTypes, error: leaveTypeError },
   ] = await Promise.all([
     supabase.from("departments").select("id,name").order("name"),
     supabase
       .from("employees")
       .select("id,employee_number,first_name,last_name,employment_status")
       .order("employee_number"),
+    supabase
+      .from("leave_types")
+      .select("id,code,versions:leave_type_versions(name,effective_from,revision_number)"),
   ]);
-  if (departmentError || employeeError) {
+  if (departmentError || employeeError || leaveTypeError) {
     throw new Error("The report filters could not be loaded.");
   }
   return {
     departments: departments ?? [],
+    leaveTypes: (leaveTypes ?? [])
+      .map((item: {
+        id: string;
+        code: string;
+        versions: Array<{ name: string; effective_from: string; revision_number: number }> | null;
+      }) => {
+        const latest = [...(item.versions ?? [])].sort(
+          (a, b) => b.effective_from.localeCompare(a.effective_from)
+            || b.revision_number - a.revision_number,
+        )[0];
+        return { id: item.id, name: latest?.name ?? item.code };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name)),
     employees: employees ?? [],
   };
 }
@@ -389,4 +491,64 @@ export async function getOvertimeHolidayReport(
   });
   if (error) throw reportError(error);
   return paginate((data ?? []).map((row: unknown) => mapOvertime(row as Record<string, unknown>)), filters);
+}
+
+
+export async function getLeaveBalanceReport(
+  filters: ReportFilters,
+  exportMode = false,
+): Promise<PaginatedReport<LeaveBalanceReportRow>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_leave_balance_report", {
+    p_leave_year: Number(filters.endDate.slice(0, 4)),
+    p_department_id: filters.departmentId,
+    p_employee_id: filters.employeeId,
+    p_leave_type_id: filters.leaveTypeId,
+    ...leavePaginationArgs(filters, exportMode),
+  });
+  if (error) throw reportError(error);
+  const rows = (data ?? []).map((row: unknown) => mapLeaveBalance(row as Record<string, unknown>));
+  enforceLeaveExportLimit(rows, exportMode);
+  return paginate(rows, filters);
+}
+
+export async function getLeaveUsageReport(
+  filters: ReportFilters,
+  exportMode = false,
+): Promise<PaginatedReport<LeaveUsageReportRow>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_leave_usage_report", {
+    p_start_date: filters.startDate,
+    p_end_date: filters.endDate,
+    p_department_id: filters.departmentId,
+    p_employee_id: filters.employeeId,
+    p_leave_type_id: filters.leaveTypeId,
+    p_status: filters.leaveStatus,
+    p_paid_state: filters.leavePaidState,
+    ...leavePaginationArgs(filters, exportMode),
+  });
+  if (error) throw reportError(error);
+  const rows = (data ?? []).map((row: unknown) => mapLeaveUsage(row as Record<string, unknown>));
+  enforceLeaveExportLimit(rows, exportMode);
+  return paginate(rows, filters);
+}
+
+export async function getLeaveConflictReport(
+  filters: ReportFilters,
+  exportMode = false,
+): Promise<PaginatedReport<LeaveConflictReportRow>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_leave_conflict_report", {
+    p_start_date: filters.startDate,
+    p_end_date: filters.endDate,
+    p_department_id: filters.departmentId,
+    p_employee_id: filters.employeeId,
+    p_conflict_type: filters.leaveConflictType,
+    p_conflict_status: filters.leaveConflictStatus,
+    ...leavePaginationArgs(filters, exportMode),
+  });
+  if (error) throw reportError(error);
+  const rows = (data ?? []).map((row: unknown) => mapLeaveConflict(row as Record<string, unknown>));
+  enforceLeaveExportLimit(rows, exportMode);
+  return paginate(rows, filters);
 }

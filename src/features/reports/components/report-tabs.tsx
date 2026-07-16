@@ -7,6 +7,9 @@ const tabs: Array<{ value: ReportTab; label: string }> = [
   { value: "daily", label: "Daily Attendance" },
   { value: "exceptions", label: "Exceptions" },
   { value: "overtime", label: "Overtime & Holiday Work" },
+  { value: "leave_balances", label: "Leave Balances" },
+  { value: "leave_usage", label: "Leave Usage" },
+  { value: "leave_conflicts", label: "Leave Conflicts" },
   { value: "exports", label: "Exports" },
 ];
 

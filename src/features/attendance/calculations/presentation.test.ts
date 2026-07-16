@@ -64,3 +64,8 @@ test("holiday attendance labels are explicit", () => {
     "Holiday work",
   );
 });
+
+test("presents paid and unpaid leave statuses", () => {
+  assert.equal(attendanceBaseStatusLabel("paid_leave"), "Paid leave");
+  assert.equal(attendanceBaseStatusLabel("unpaid_leave"), "Unpaid leave");
+});

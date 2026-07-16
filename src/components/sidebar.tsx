@@ -52,6 +52,13 @@ export function Sidebar({ role }: { role: string }) {
         ["/settings/work-schedules", "Work Schedules", CalendarRange],
       ] as const
     : [["/my-schedule", "My Schedule", CalendarRange]] as const;
+  const leaveItems: readonly NavigationItem[] = isHr
+    ? [
+        ["/employee/leave", "My Leave", CalendarDays],
+        ["/admin/leave", "Leave Administration", CalendarHeart],
+        ["/settings/leave-types", "Leave Types", Settings],
+      ] as const
+    : [["/employee/leave", "My Leave", CalendarDays]] as const;
   const hrOnlyItems: readonly NavigationItem[] = isHr
     ? [["/reports", "Reports", BarChart3]] as const
     : [];
@@ -61,8 +68,8 @@ export function Sidebar({ role }: { role: string }) {
     ["/employees", "Employees", Users],
     ...attendanceItems,
     ...scheduleItems,
+    ...leaveItems,
     ...hrOnlyItems,
-    ["/leave", "Leave", CalendarDays],
     ["/documents", "Documents", FileText],
     ["/announcements", "Announcements", Megaphone],
     ["/settings", "Settings", Settings],

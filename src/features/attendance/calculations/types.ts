@@ -4,6 +4,8 @@ export const attendanceCalculationBaseStatuses = [
   "present",
   "absent",
   "holiday",
+  "paid_leave",
+  "unpaid_leave",
   "missing_clock_out",
   "rest_day_worked",
   "unscheduled_attendance",
