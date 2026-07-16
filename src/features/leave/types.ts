@@ -211,6 +211,10 @@ export type LeavePreviewResult = {
   requiresDocument: boolean;
 };
 
+export type LeavePreviewActionResult =
+  | { ok: true; preview: LeavePreviewResult }
+  | { ok: false; error: string };
+
 export type LeaveRequestListItem = {
   requestGroupId: string;
   activeRevisionId: string;

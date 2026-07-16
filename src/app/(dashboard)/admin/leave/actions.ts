@@ -7,7 +7,7 @@ import { requireLeaveAdmin } from "@/features/leave/auth";
 import { mapLeaveError } from "@/features/leave/errors";
 import { previewLeaveRequest } from "@/features/leave/requests/queries";
 import { deleteLeaveAttachment } from "@/features/leave/requests/storage";
-import type { LeaveActionState, LeavePreviewResult } from "@/features/leave/types";
+import type { LeaveActionState, LeavePreviewActionResult } from "@/features/leave/types";
 import {
   validateLeaveAdjustment,
   validateLeaveCancellation,
@@ -80,20 +80,26 @@ export async function createHrLeaveDraft(
   redirect(`/admin/leave/${requestGroupId}?success=draft-created`);
 }
 
-export async function previewHrLeaveDraft(formData: FormData): Promise<LeavePreviewResult> {
+export async function previewHrLeaveDraft(formData: FormData): Promise<LeavePreviewActionResult> {
   await requireLeaveAdmin();
   const validation = validateLeaveDraft(formData);
   if (!validation.data) {
-    throw new Error(validation.state?.error ?? "Invalid leave request.");
+    return { ok: false, error: validation.state?.error ?? "Invalid leave request." };
   }
-  return previewLeaveRequest({
-    employeeId: validation.data.employeeId,
-    leaveTypeId: validation.data.leaveTypeId,
-    startDate: validation.data.startDate,
-    endDate: validation.data.endDate,
-    durationMode: validation.data.durationMode,
-    excludeRequestGroupId: String(formData.get("request_group_id") ?? "").trim() || null,
-  });
+  try {
+    const preview = await previewLeaveRequest({
+      employeeId: validation.data.employeeId,
+      leaveTypeId: validation.data.leaveTypeId,
+      startDate: validation.data.startDate,
+      endDate: validation.data.endDate,
+      durationMode: validation.data.durationMode,
+      excludeRequestGroupId: String(formData.get("request_group_id") ?? "").trim() || null,
+    });
+    return { ok: true, preview };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    return { ok: false, error: mapLeaveError(message) };
+  }
 }
 
 export async function deleteHrLeaveDraftAttachment(

@@ -8,7 +8,7 @@ import { previewLeaveRequest } from "@/features/leave/requests/queries";
 import { deleteLeaveAttachment } from "@/features/leave/requests/storage";
 import type {
   LeaveActionState,
-  LeavePreviewResult,
+  LeavePreviewActionResult,
 } from "@/features/leave/types";
 import { validateLeaveDraft } from "@/features/leave/validation";
 
@@ -228,23 +228,29 @@ export async function withdrawLeaveRequest(
   redirect(`/employee/leave/${requestGroupId}?success=withdrawn`);
 }
 
-export async function previewLeaveDraft(formData: FormData): Promise<LeavePreviewResult> {
+export async function previewLeaveDraft(formData: FormData): Promise<LeavePreviewActionResult> {
   const { employee } = await requireLeaveEmployee();
   const validation = validateLeaveDraft(formData);
   if (!validation.data) {
-    throw new Error(validation.state?.error ?? "Invalid leave request.");
+    return { ok: false, error: validation.state?.error ?? "Invalid leave request." };
   }
   if (validation.data.employeeId !== employee.id) {
-    throw new Error(mapLeaveError("LEAVE_PERMISSION_DENIED"));
+    return { ok: false, error: mapLeaveError("LEAVE_PERMISSION_DENIED") };
   }
 
-  return previewLeaveRequest({
-    employeeId: employee.id,
-    leaveTypeId: validation.data.leaveTypeId,
-    startDate: validation.data.startDate,
-    endDate: validation.data.endDate,
-    durationMode: validation.data.durationMode,
-    excludeRequestGroupId:
-      String(formData.get("request_group_id") ?? "").trim() || null,
-  });
+  try {
+    const preview = await previewLeaveRequest({
+      employeeId: employee.id,
+      leaveTypeId: validation.data.leaveTypeId,
+      startDate: validation.data.startDate,
+      endDate: validation.data.endDate,
+      durationMode: validation.data.durationMode,
+      excludeRequestGroupId:
+        String(formData.get("request_group_id") ?? "").trim() || null,
+    });
+    return { ok: true, preview };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    return { ok: false, error: mapLeaveError(message) };
+  }
 }

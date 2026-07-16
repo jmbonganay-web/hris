@@ -14,6 +14,7 @@ import type {
   LeaveAttachment,
   LeaveDraftValues,
   LeaveDurationMode,
+  LeavePreviewActionResult,
   LeavePreviewResult,
   LeaveTypeOption,
 } from "@/features/leave/types";
@@ -31,7 +32,7 @@ export type LeaveRequestFormProps = {
   expectedRevisionId?: string;
   attachments?: LeaveAttachment[];
   action: (state: LeaveActionState, formData: FormData) => Promise<LeaveActionState>;
-  previewAction: (formData: FormData) => Promise<LeavePreviewResult>;
+  previewAction: (formData: FormData) => Promise<LeavePreviewActionResult>;
   employeeOptions?: Array<{ id: string; first_name: string; last_name: string; employee_number: string }>;
 };
 
@@ -111,12 +112,17 @@ export function LeaveRequestForm({
     startPreviewTransition(() => {
       void previewAction(data)
         .then((result) => {
-          setPreview(result);
-          setPreviewError("");
-        })
-        .catch((error: unknown) => {
+          if (result.ok) {
+            setPreview(result.preview);
+            setPreviewError("");
+            return;
+          }
           setPreview(null);
-          setPreviewError(error instanceof Error ? error.message : "Unable to calculate leave dates.");
+          setPreviewError(result.error);
+        })
+        .catch(() => {
+          setPreview(null);
+          setPreviewError("Unable to calculate leave dates.");
         });
     });
   }

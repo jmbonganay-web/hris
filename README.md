@@ -847,11 +847,11 @@ Confirm the plans use the report date and active-pointer indexes and do not perf
 
 ## Phase 6 leave management
 
-Apply the Phase 6 migrations in filename order only after all Phase 5C migrations, including `202607150005_fix_employee_attendance_summary_ambiguity.sql`. Existing Phase 6 installations must also apply `202607160002_fix_leave_request_detail_runtime.sql` and `202607160003_fix_leave_draft_delete.sql`. Company leave and attendance dates use `Asia/Manila`.
+Apply the Phase 6 migrations in filename order only after all Phase 5C migrations, including `202607150005_fix_employee_attendance_summary_ambiguity.sql`. Existing Phase 6 installations must also apply `202607160002_fix_leave_request_detail_runtime.sql`, `202607160003_fix_leave_draft_delete.sql`, and `202607160004_fix_employee_manager_summary.sql`. Company leave and attendance dates use `Asia/Manila`.
 
 ### Deployment and storage checklist
 
-1. Apply `supabase/migrations/202607160001_leave_management.sql`, `202607160002_fix_leave_request_detail_runtime.sql`, and `202607160003_fix_leave_draft_delete.sql` in filename order after Phase 5C.
+1. Apply `supabase/migrations/202607160001_leave_management.sql`, `202607160002_fix_leave_request_detail_runtime.sql`, `202607160003_fix_leave_draft_delete.sql`, and `202607160004_fix_employee_manager_summary.sql` in filename order after Phase 5C.
 2. Confirm the `leave-documents` Supabase Storage bucket exists and remains **private** (`public = false`).
 3. Confirm authenticated users cannot list arbitrary bucket objects. Attachment access must use the protected preparation, finalization, and signed-download routes.
 4. Create the initial leave types and their effective-dated policy versions.
