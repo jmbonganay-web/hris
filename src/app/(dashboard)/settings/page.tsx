@@ -1,7 +1,19 @@
 import Link from "next/link";
-import { Building2, BriefcaseBusiness, CalendarClock, CalendarHeart, CalendarRange, MapPin, TimerReset, ShieldCheck, UserRoundCog } from "lucide-react";
+import {
+  Building2,
+  BriefcaseBusiness,
+  CalendarClock,
+  CalendarHeart,
+  CalendarRange,
+  FileCheck2,
+  Files,
+  MapPin,
+  ShieldCheck,
+  TimerReset,
+  UserRoundCog,
+} from "lucide-react";
 import { PageHeader } from "@/components/page-header";
-import { getCurrentRole } from "@/features/employees/auth";
+import { getDocumentPermissionContext } from "@/features/documents/auth";
 
 const settings = [
   {
@@ -79,9 +91,42 @@ const settings = [
 ] as const;
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const [query, role] = await Promise.all([searchParams, getCurrentRole()]);
-  const canManage = role === "hr_admin" || role === "super_admin";
-  const visibleSettings = settings.filter((item) => !item.restricted || canManage);
+  const [query, context] = await Promise.all([searchParams, getDocumentPermissionContext()]);
+  const canManage = context.role === "hr_admin" || context.role === "super_admin";
+  const canManageDocuments = context.role === "super_admin" || context.permissions.includes("documents.manage");
+  const isSuperAdmin = context.role === "super_admin";
+  const visibleSettings = [
+    ...settings.filter((item) => !item.restricted || canManage),
+    ...(canManageDocuments
+      ? [
+          {
+            href: "/admin/documents/categories",
+            title: "Document categories",
+            description: "Configure versioned categories, visibility, file rules, expiration, and custom fields.",
+            icon: Files,
+            status: "Available" as const,
+          },
+          {
+            href: "/admin/documents/requirements",
+            title: "Document requirements",
+            description: "Manage employee, job-title, department, employment-type, and organization-wide rules.",
+            icon: FileCheck2,
+            status: "Available" as const,
+          },
+        ]
+      : []),
+    ...(isSuperAdmin
+      ? [
+          {
+            href: "/admin/documents/permissions",
+            title: "Document permissions",
+            description: "Grant or revoke independent document review and management permissions for HR Admins.",
+            icon: ShieldCheck,
+            status: "Available" as const,
+          },
+        ]
+      : []),
+  ];
   const unauthorized = query.error === "unauthorized";
 
   return <>
@@ -105,7 +150,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
     <div className="card settings-status-card">
       <div className="settings-icon"><ShieldCheck size={20} /></div>
-      <div><h2 className="card-title">Backend status</h2><p className="muted">Supabase authentication, employee management, organization structure, work schedules, attendance calculations, holidays, overtime approvals, attendance reports, and leave management are connected. Documents, notifications, and payroll remain future phases.</p></div>
+      <div><h2 className="card-title">Backend status</h2><p className="muted">Supabase authentication, employee management, organization structure, work schedules, attendance calculations, holidays, overtime approvals, attendance reports, leave management, employee document management, and in-app document notifications are connected. Payroll and announcements remain future phases.</p></div>
     </div>
   </>;
 }

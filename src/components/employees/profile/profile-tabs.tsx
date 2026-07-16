@@ -9,6 +9,7 @@ const tabs = [
   { id: "hr_notes", label: "HR Notes", restricted: true, route: true },
   { id: "activity", label: "Activity", restricted: true, route: true },
   { id: "schedule", label: "Schedule", restricted: true, route: true },
+  { id: "documents", label: "Documents", restricted: true, route: true },
 ] as const;
 
 export type ProfileTab = typeof tabs[number]["id"];
@@ -18,6 +19,7 @@ function tabHref(employeeId: string, tab: typeof tabs[number]) {
   if (tab.id === "hr_notes") return `/employees/${employeeId}/hr-notes`;
   if (tab.id === "activity") return `/employees/${employeeId}/activity`;
   if (tab.id === "schedule") return `/employees/${employeeId}/schedule`;
+  if (tab.id === "documents") return `/admin/documents/employees/${employeeId}`;
   return `/employees/${employeeId}?tab=${tab.id}`;
 }
 

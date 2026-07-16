@@ -1,0 +1,32 @@
+const safeDocumentErrors: ReadonlyArray<readonly [string, string]> = [
+  ["DOCUMENT_PERMISSION_DENIED", "You do not have permission to perform this document action."],
+  ["DOCUMENT_CATEGORY_NOT_FOUND", "The selected document category could not be found."],
+  ["DOCUMENT_CATEGORY_ARCHIVED", "The selected document category is archived."],
+  ["DOCUMENT_CATEGORY_STALE", "The category configuration changed. Reload and try again."],
+  ["DOCUMENT_INVALID_VISIBILITY", "The selected document visibility is not allowed."],
+  ["DOCUMENT_INVALID_METADATA", "Review the document details and correct the highlighted fields."],
+  ["DOCUMENT_INVALID_FILE", "One or more files are invalid."],
+  ["DOCUMENT_FILE_TOO_LARGE", "Each file must be 15 MB or smaller."],
+  ["DOCUMENT_FILE_COUNT_EXCEEDED", "Upload no more than 10 files at a time."],
+  ["DOCUMENT_CARDINALITY_CONFLICT", "This category accepts only one active document."],
+  ["DOCUMENT_UPLOAD_SESSION_INVALID", "The upload session is not valid. Start the upload again."],
+  ["DOCUMENT_UPLOAD_SESSION_EXPIRED", "The upload session expired. Start the upload again."],
+  ["DOCUMENT_UPLOAD_INCOMPLETE", "The upload could not be completed. No official records were saved."],
+  ["DOCUMENT_VERSION_STALE", "This document changed while you were working. Reload and try again."],
+  ["DOCUMENT_INVALID_STATUS", "This action is not allowed for the current document status."],
+  ["DOCUMENT_SELF_REVIEW_FORBIDDEN", "You cannot review your own document submission."],
+  ["DOCUMENT_REVIEW_ALREADY_COMPLETED", "Another reviewer has already processed this submission."],
+  ["DOCUMENT_REJECTION_REASON_REQUIRED", "An internal review reason is required."],
+  ["DOCUMENT_REPLACEMENT_INSTRUCTIONS_REQUIRED", "Employee replacement instructions are required."],
+  ["DOCUMENT_ACTIVE_VERSION_CONFLICT", "The active document version changed. Reload and try again."],
+  ["DOCUMENT_REQUIREMENT_CONFLICT", "A conflicting document requirement already exists."],
+  ["DOCUMENT_PERMISSION_GRANT_INVALID", "This document permission cannot be granted to that user."],
+  ["DOCUMENT_ARCHIVED", "This document is archived."],
+  ["DOCUMENT_DELETE_REASON_REQUIRED", "A permanent deletion reason is required."],
+  ["DOCUMENT_ACCESS_DENIED", "You do not have access to this document file."],
+  ["DOCUMENT_NOT_PREVIEWABLE", "This file type is available for download only."],
+  ["DOCUMENT_NOT_FOUND", "The requested document could not be found."],
+];
+export function mapDocumentError(message: string, fallback = "The document action could not be completed.") {
+  return safeDocumentErrors.find(([code]) => message.includes(code))?.[1] ?? fallback;
+}

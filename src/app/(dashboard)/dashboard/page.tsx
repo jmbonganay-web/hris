@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CalendarClock, ClipboardCheck, Users } from "lucide-react";
 import { AttendanceClockCard } from "@/components/attendance/attendance-clock-card";
 import { DashboardAttendanceSummary } from "@/components/attendance/dashboard-attendance-summary";
+import { ManagerDocumentCompliance } from "@/components/documents/manager-document-compliance";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { requireAttendanceEmployee } from "@/features/attendance/auth";
@@ -9,6 +10,7 @@ import {
   getAdminAttendanceSummary,
   getTodayAttendanceContext,
 } from "@/features/attendance/queries";
+import { getManagerDocumentCompliance } from "@/features/documents/compliance/queries";
 import { getCurrentRole } from "@/features/employees/auth";
 import { employees, leaveRequests } from "@/data/mock";
 import { initials } from "@/lib/utils";
@@ -17,13 +19,18 @@ export default async function DashboardPage() {
   const role = await getCurrentRole();
   const isAdmin = role === "hr_admin" || role === "super_admin";
   const attendanceContent = isAdmin
-    ? { summary: await getAdminAttendanceSummary(), context: null }
+    ? {
+        summary: await getAdminAttendanceSummary(),
+        context: null,
+        managerCompliance: [],
+      }
     : await (async () => {
         const { employee } = await requireAttendanceEmployee();
-        return {
-          summary: null,
-          context: await getTodayAttendanceContext(employee),
-        };
+        const [context, managerCompliance] = await Promise.all([
+          getTodayAttendanceContext(employee),
+          getManagerDocumentCompliance(),
+        ]);
+        return { summary: null, context, managerCompliance };
       })();
 
   const stats = isAdmin
@@ -61,6 +68,18 @@ export default async function DashboardPage() {
           <AttendanceClockCard context={attendanceContent.context} />
         </section>
       ) : null}
+
+      {!isAdmin && attendanceContent.managerCompliance.length > 0 && (
+        <section className="content-stack">
+          <div className="section-heading">
+            <div>
+              <h2>Direct-report document compliance</h2>
+              <p>Aggregate requirement status only. Document files and sensitive metadata remain restricted to HR.</p>
+            </div>
+          </div>
+          <ManagerDocumentCompliance rows={attendanceContent.managerCompliance} />
+        </section>
+      )}
 
       <section className="grid split">
         <div className="card">
