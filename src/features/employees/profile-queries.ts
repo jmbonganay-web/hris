@@ -5,6 +5,7 @@ import type {
   EmployeeRecord,
   ExpandedEmployeeProfile,
   ManagerOption,
+  ManagerSummary,
 } from "./types";
 
 const expandedEmployeeSelect = `
@@ -41,14 +42,6 @@ const expandedEmployeeSelect = `
     title,
     department_id,
     is_active,
-    archived_at
-  ),
-  manager:employee_manager(
-    id,
-    first_name,
-    last_name,
-    employee_number,
-    employment_status,
     archived_at
   )
 `;
@@ -185,13 +178,32 @@ export async function getExpandedEmployeeProfile(
   }
 
   const typedEmployee = employee as unknown as EmployeeRecord;
+  let managerSummary: ManagerSummary | null = null;
+
+  if (typedEmployee.manager_id) {
+    const { data: manager, error: managerError } = await supabase
+      .rpc("get_employee_manager_summary", {
+        p_employee_id: employeeId,
+      })
+      .maybeSingle();
+
+    if (managerError) {
+      logSupabaseError("employee manager summary", managerError);
+      throw new Error("Unable to load the employee manager.");
+    }
+
+    managerSummary = manager as ManagerSummary | null;
+  }
 
   const avatarUrl = await getEmployeeAvatarSignedUrl(
     typedEmployee.avatar_path,
   );
 
   return {
-    employee: typedEmployee,
+    employee: {
+      ...typedEmployee,
+      manager: managerSummary,
+    },
     personal,
     emergencyContacts,
     avatarUrl,

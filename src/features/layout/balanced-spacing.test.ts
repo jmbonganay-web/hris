@@ -1,0 +1,73 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+
+const css = await readFile(
+  new URL("../../app/globals.css", import.meta.url),
+  "utf8",
+);
+
+const requiredClasses = [
+  "attendance-policy-form",
+  "attendance-responsive-list",
+  "attendance-schedule-summary",
+  "attendance-status-stack",
+  "card-header-row",
+  "conflict-resolution-form",
+  "correction-request-form",
+  "danger-zone-form",
+  "detail-grid",
+  "empty-state",
+  "field-label",
+  "filter-tabs",
+  "form-card",
+  "holiday-card",
+  "info-callout",
+  "leave-admin-filters",
+  "leave-admin-form-grid",
+  "leave-admin-quick-links",
+  "leave-policy-checkboxes",
+  "leave-policy-version-list",
+  "leave-review-panel",
+  "leave-type-form",
+  "leave-year-opening-grid",
+  "metrics-grid",
+  "policy-card",
+  "private-reason",
+  "section-title",
+  "stack-list",
+] as const;
+
+test("balanced spacing tokens encode the approved desktop scale", () => {
+  assert.match(css, /--space-page:\s*28px/);
+  assert.match(css, /--space-section:\s*24px/);
+  assert.match(css, /--space-card:\s*18px/);
+  assert.match(css, /--space-related:\s*12px/);
+  assert.match(css, /--table-cell-y:\s*11px/);
+});
+
+test("every production layout class has a global CSS definition", () => {
+  for (const className of requiredClasses) {
+    assert.match(css, new RegExp(`\\.${className}(?:[\\s.{:#,>]|$)`), className);
+  }
+});
+
+test("shared layouts use balanced grids and form spacing", () => {
+  assert.match(css, /\.content\s*\{[\s\S]*?gap:\s*var\(--space-section\)/);
+  assert.match(css, /\.form-card\s*\{[\s\S]*?display:\s*grid[\s\S]*?gap:\s*var\(--space-card\)/);
+  assert.match(css, /\.metrics-grid\s*\{[\s\S]*?display:\s*grid[\s\S]*?gap:/);
+  assert.match(css, /\.detail-grid\s*\{[\s\S]*?display:\s*grid[\s\S]*?grid-template-columns:/);
+  assert.match(css, /\.leave-admin-quick-links\s*\{[\s\S]*?display:\s*grid[\s\S]*?grid-template-columns:/);
+});
+
+test("tables and responsive page padding stay compact and readable", () => {
+  assert.match(css, /th,\s*td\s*\{[\s\S]*?padding:\s*var\(--table-cell-y\)\s+var\(--table-cell-x\)/);
+  assert.match(css, /@media\s*\(max-width:\s*1100px\)[\s\S]*?\.content\s*\{[\s\S]*?padding:\s*24px/);
+  assert.match(css, /@media\s*\(max-width:\s*760px\)[\s\S]*?\.content\s*\{[\s\S]*?padding:\s*18px\s+14px/);
+});
+
+test("sidebar handles long navigation without exposing a short dark rail", () => {
+  assert.match(css, /\.app-shell\s*\{[\s\S]*?background:\s*linear-gradient/);
+  assert.match(css, /\.sidebar\s*\{[\s\S]*?overflow-y:\s*auto/);
+  assert.match(css, /\.sidebar\s*\{[\s\S]*?overscroll-behavior:\s*contain/);
+});

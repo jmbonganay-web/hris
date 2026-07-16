@@ -8,16 +8,16 @@ const source = await readFile(
 );
 
 test(
-  "expanded profile query uses the computed manager relationship",
+  "expanded profile query uses an ownership-scoped manager summary RPC",
   () => {
     assert.match(
       source,
-      /manager:employee_manager\s*\(/,
+      /\.rpc\(\s*["']get_employee_manager_summary["']/,
     );
 
     assert.doesNotMatch(
       source,
-      /manager:employees!employees_manager_id_fkey/,
+      /manager:employee_manager\s*\(/,
     );
   },
 );
