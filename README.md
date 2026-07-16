@@ -32,8 +32,9 @@ A responsive HRIS application built with Next.js, TypeScript, and Supabase. The 
 - Automated Manila-date finalization with manual HR recalculation and revision history
 - Effective-dated overtime thresholds, immutable holidays, overtime approvals, and employee overtime history
 - HR-only Operational and Payroll attendance reports with CSV and XLSX exports
+- Employee and HR leave management with effective-dated policies, immutable requests, balance ledger, attendance integration, and private documents
 
-Leave management, document management, dashboard analytics, notifications, and payroll computation remain future phases.
+Document management, dashboard analytics, notifications, and payroll computation remain future phases.
 
 ## Requirements
 
@@ -84,6 +85,8 @@ supabase/migrations/202607150001_attendance_policy_calculations.sql
 supabase/migrations/202607150002_overtime_holidays.sql
 supabase/migrations/202607150003_overtime_holidays_privilege_hardening.sql
 supabase/migrations/202607150004_attendance_reports_payroll_export.sql
+supabase/migrations/202607150005_fix_employee_attendance_summary_ambiguity.sql
+supabase/migrations/202607160001_leave_management.sql
 ```
 
 The Phase 3 migration adds:
@@ -840,3 +843,52 @@ rollback;
 ```
 
 Confirm the plans use the report date and active-pointer indexes and do not perform unbounded sequential scans over all attendance revisions or overtime approvals.
+
+
+## Phase 6 leave management
+
+Apply the Phase 6 migrations in filename order only after all Phase 5C migrations, including `202607150005_fix_employee_attendance_summary_ambiguity.sql`. Existing Phase 6 installations must also apply `202607160002_fix_leave_request_detail_runtime.sql` and `202607160003_fix_leave_draft_delete.sql`. Company leave and attendance dates use `Asia/Manila`.
+
+### Deployment and storage checklist
+
+1. Apply `supabase/migrations/202607160001_leave_management.sql`, `202607160002_fix_leave_request_detail_runtime.sql`, and `202607160003_fix_leave_draft_delete.sql` in filename order after Phase 5C.
+2. Confirm the `leave-documents` Supabase Storage bucket exists and remains **private** (`public = false`).
+3. Confirm authenticated users cannot list arbitrary bucket objects. Attachment access must use the protected preparation, finalization, and signed-download routes.
+4. Create the initial leave types and their effective-dated policy versions.
+5. Configure employee exclusions and annual allocation overrides before year opening.
+6. Preview the selected leave year, then run year opening. Re-running the same year is idempotent and must not duplicate allocations or carryover.
+7. Create allocations for mid-year hires individually and enter the manually prorated units as the employee-year override.
+8. Review open leave-attendance conflicts after attendance corrections, schedule changes, or holiday changes.
+9. Never expose employee notes, review reasons, cancellation reasons, attachment paths, filenames, or signed URLs in general audit JSON, CSV, XLSX, URLs, or logs.
+10. Verify both employee and HR role access before deployment.
+
+### Request and attachment rules
+
+- Employees may backdate requests by up to 30 calendar days and submit requests up to 365 calendar days ahead. HR Admin and Super Admin may create older historical requests when required.
+- One request cannot cross December 31; submit separate requests for separate calendar years.
+- Whole-day, first-half, and second-half leave are supported. Half-day leave is limited to a single date.
+- Requests containing no chargeable scheduled workdays are rejected.
+- Pending and approved overlaps are rejected, and pending balance reservations are included when validating available units.
+- Supporting files are limited to PDF, JPG/JPEG, and PNG.
+- A request may contain no more than five attachments, with a maximum size of 10 MB per file.
+- Attachments may be added, replaced, or removed only while the request remains a draft.
+
+### Initial operating procedure
+
+1. Open `/settings/leave-types` and create each leave type with its first effective policy version.
+2. Open `/admin/leave/year-opening`, select the target year, and review the preview before generation.
+3. Use `/admin/leave/balances` for employee exclusions, yearly overrides, individual allocations, and reason-required adjustments.
+4. Use `/admin/leave` for pending review, rejection, approved-request cancellation, and HR-created requests.
+5. Use `/admin/leave/conflicts` after attendance or calendar corrections.
+6. Use `/reports` for leave balance, usage, and conflict reports. Exports must remain free of confidential leave content.
+
+### Phase 6 verification
+
+```bash
+npm ci
+npm test
+npx tsc --noEmit
+npm run build
+```
+
+Before production deployment, apply the migration in a preview Supabase project, confirm `leave-documents` is private, and complete employee and HR workflow checks.

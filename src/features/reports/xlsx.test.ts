@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import ExcelJS from "exceljs";
-import { buildAttendanceWorkbook, xlsxFilename } from "./xlsx.ts";
+import { buildAttendanceWorkbook, buildLeaveWorkbook, xlsxFilename, leaveXlsxFilename } from "./xlsx.ts";
 
 test("workbook has four visible worksheets with frozen filtered headers", async () => {
   const bytes = await buildAttendanceWorkbook({ daily: [], employeeSummary: [], exceptions: [], overtime: [] });
@@ -58,4 +58,25 @@ test("workbook generation is in-memory and never writes files or uses storage", 
   const source = await import("node:fs/promises").then(({ readFile }) => readFile(new URL("./xlsx.ts", import.meta.url), "utf8"));
   assert.match(source, /writeBuffer/);
   assert.doesNotMatch(source, /writeFile|createWriteStream|tmpdir|supabase\.storage|\.storage\./i);
+});
+
+
+test("leave workbook uses the approved three worksheets and headers", async () => {
+  const bytes = await buildLeaveWorkbook({ balances: [], usage: [], conflicts: [] });
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(bytes as never);
+  assert.deepEqual(workbook.worksheets.map((sheet) => sheet.name), ["Leave Balances", "Leave Usage", "Leave Conflicts"]);
+  const balanceHeaderValues = workbook.getWorksheet("Leave Balances")?.getRow(1).values;
+  assert.ok(Array.isArray(balanceHeaderValues));
+  assert.deepEqual(balanceHeaderValues.slice(1), [
+    "Employee Number", "Employee Name", "Department", "Leave Type", "Leave Year",
+    "Allocated Units", "Carryover Units", "Adjustment Units", "Used Units",
+    "Pending Units", "Available Units", "Carryover Expires",
+  ]);
+});
+
+test("leave XLSX filenames are dataset controlled", () => {
+  assert.equal(leaveXlsxFilename("leave_balances", "2026-07-31"), "leave-balances-2026-07-31.xlsx");
+  assert.equal(leaveXlsxFilename("leave_usage", "2026-07-31"), "leave-usage-2026-07-31.xlsx");
+  assert.equal(leaveXlsxFilename("leave_conflicts", "2026-07-31"), "leave-conflicts-2026-07-31.xlsx");
 });

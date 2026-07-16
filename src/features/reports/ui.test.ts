@@ -12,7 +12,7 @@ test("reports page authorizes before loading data", () => {
 });
 
 test("unified page exposes all approved tabs and modes", () => {
-  for (const label of ["Summary", "Daily Attendance", "Exceptions", "Overtime & Holiday Work", "Exports"]) assert.match(tabs, new RegExp(label));
+  for (const label of ["Summary", "Daily Attendance", "Exceptions", "Overtime & Holiday Work", "Leave Balances", "Leave Usage", "Leave Conflicts", "Exports"]) assert.match(tabs, new RegExp(label));
   assert.match(filters, /Operational/);
   assert.match(filters, /Payroll/);
 });
@@ -64,4 +64,14 @@ test("reports provide loading and retryable error states", async () => {
   assert.match(error, /^"use client";/);
   assert.match(error, /onClick=\{reset\}/);
   assert.match(error, /selected filters were preserved/i);
+});
+
+
+test("reports page routes leave tabs to dedicated tables", () => {
+  assert.match(page, /getLeaveBalanceReport/);
+  assert.match(page, /getLeaveUsageReport/);
+  assert.match(page, /getLeaveConflictReport/);
+  assert.match(page, /LeaveBalanceTable/);
+  assert.match(page, /LeaveUsageTable/);
+  assert.match(page, /LeaveConflictReportTable/);
 });

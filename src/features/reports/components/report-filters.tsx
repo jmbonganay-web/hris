@@ -57,6 +57,8 @@ export function ReportFilters({
               <option value="present">Present</option>
               <option value="absent">Absent</option>
               <option value="holiday">Holiday</option>
+              <option value="paid_leave">Paid leave</option>
+              <option value="unpaid_leave">Unpaid leave</option>
               <option value="missing_clock_out">Missing clock-out</option>
               <option value="rest_day_worked">Rest day worked</option>
               <option value="unscheduled_attendance">Unscheduled attendance</option>
@@ -102,6 +104,53 @@ export function ReportFilters({
               <option value="regular_holiday">Regular Holiday</option>
               <option value="special_non_working_holiday">Special Non-Working Holiday</option>
               <option value="company_holiday">Company Holiday</option>
+            </select>
+          </>
+        )}
+
+        {(["leave_balances", "leave_usage", "leave_conflicts"] as const).includes(filters.tab as "leave_balances" | "leave_usage" | "leave_conflicts") && (
+          <select className="field" name="leave_type" defaultValue={filters.leaveTypeId ?? ""} aria-label="Leave type">
+            <option value="">All leave types</option>
+            {options.leaveTypes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select>
+        )}
+
+        {filters.tab === "leave_usage" && (
+          <>
+            <select className="field" name="leave_status" defaultValue={filters.leaveStatus ?? ""} aria-label="Leave status">
+              <option value="">All leave statuses</option>
+              <option value="draft">Draft</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+              <option value="withdrawn">Withdrawn</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="superseded">Superseded</option>
+            </select>
+            <select className="field" name="leave_paid_state" defaultValue={filters.leavePaidState ?? ""} aria-label="Paid state">
+              <option value="">Paid and unpaid</option>
+              <option value="paid">Paid</option>
+              <option value="unpaid">Unpaid</option>
+            </select>
+          </>
+        )}
+
+        {filters.tab === "leave_conflicts" && (
+          <>
+            <select className="field" name="leave_conflict_type" defaultValue={filters.leaveConflictType ?? ""} aria-label="Leave conflict type">
+              <option value="">All conflict types</option>
+              <option value="full_day_completed_attendance">Full-day completed attendance</option>
+              <option value="full_day_incomplete_attendance">Full-day incomplete attendance</option>
+              <option value="half_day_covered_time_overlap">Half-day covered-time overlap</option>
+              <option value="schedule_recalculation_failed">Schedule recalculation failed</option>
+              <option value="holiday_recalculation_failed">Holiday recalculation failed</option>
+              <option value="insufficient_balance_after_recalculation">Insufficient balance after recalculation</option>
+            </select>
+            <select className="field" name="leave_conflict_status" defaultValue={filters.leaveConflictStatus ?? ""} aria-label="Leave conflict status">
+              <option value="">All conflict statuses</option>
+              <option value="open">Open</option>
+              <option value="resolved">Resolved</option>
+              <option value="superseded">Superseded</option>
             </select>
           </>
         )}

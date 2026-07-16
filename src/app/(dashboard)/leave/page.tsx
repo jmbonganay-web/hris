@@ -1,4 +1,10 @@
-import { PageHeader } from "@/components/page-header";
-import { StatusBadge } from "@/components/status-badge";
-import { leaveRequests } from "@/data/mock";
-export default function LeavePage(){return <><PageHeader title="Leave management" description="Review requests, balances, leave types, and approval history." action={<button className="btn primary">New leave request</button>} /><div className="grid stats"><div className="card"><div className="stat-label">Vacation balance</div><div className="stat-value">12</div><div className="muted">days available</div></div><div className="card"><div className="stat-label">Sick leave</div><div className="stat-value">8</div><div className="muted">days available</div></div><div className="card"><div className="stat-label">Pending requests</div><div className="stat-value">2</div><div className="muted">awaiting review</div></div><div className="card"><div className="stat-label">Approved this month</div><div className="stat-value">11</div><div className="muted">requests</div></div></div><div className="card" style={{marginTop:18}}><table><thead><tr><th>Employee</th><th>Leave type</th><th>Dates</th><th>Days</th><th>Status</th></tr></thead><tbody>{leaveRequests.map(r=><tr key={r.id}><td><strong>{r.employee}</strong></td><td>{r.type}</td><td>{r.dates}</td><td>{r.days}</td><td><StatusBadge value={r.status}/></td></tr>)}</tbody></table></div></>}
+import { redirect } from "next/navigation";
+import { getCurrentRole } from "@/features/employees/auth";
+
+export default async function LeaveRedirectPage() {
+  const role = await getCurrentRole();
+  if (role === "hr_admin" || role === "super_admin") {
+    redirect("/admin/leave");
+  }
+  redirect("/employee/leave");
+}

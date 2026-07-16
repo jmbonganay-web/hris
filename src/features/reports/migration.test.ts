@@ -3,6 +3,11 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const sql = await readFile(new URL("../../../supabase/migrations/202607150004_attendance_reports_payroll_export.sql", import.meta.url), "utf8");
+const migration = await readFile(new URL("../../../supabase/migrations/202607160001_leave_management.sql", import.meta.url), "utf8");
+
+function functionBody(name: string) {
+  return migration.match(new RegExp(`create or replace function public\\.${name}[\\s\\S]*?\\$\\$;`, "i"))?.[0] ?? "";
+}
 
 test("migration is one transaction with one schema refresh", () => {
   assert.equal((sql.toLowerCase().match(/^begin;/gm) ?? []).length, 1);
@@ -112,4 +117,50 @@ test("employee summary qualifies the source employee id to avoid PL/pgSQL output
   const body = sql.match(/create or replace function public\.get_employee_attendance_summary[\s\S]*?\$\$;/i)?.[0] ?? "";
   assert.equal((body.match(/select distinct source\.employee_id from filtered_source as source/gi) ?? []).length, 2);
   assert.doesNotMatch(body, /select distinct employee_id from filtered_source/i);
+});
+
+
+test("migration exposes HR-only leave report functions", () => {
+  for (const name of [
+    "get_leave_balance_report",
+    "get_leave_usage_report",
+    "get_leave_conflict_report",
+  ]) {
+    assert.match(migration, new RegExp(`create or replace function public\\.${name}`, "i"));
+    assert.match(migration, new RegExp(`revoke all on function public\\.${name}`, "i"));
+  }
+});
+
+test("leave report SQL excludes private columns", () => {
+  const privateColumns = [
+    "employee_note", "storage_path", "original_filename", "action_reason",
+    "review_note", "private_reason", "private_resolution_note",
+  ];
+  for (const name of ["get_leave_balance_report", "get_leave_usage_report", "get_leave_conflict_report"]) {
+    const source = functionBody(name);
+    for (const column of privateColumns) assert.doesNotMatch(source, new RegExp(column, "i"));
+  }
+});
+
+test("leave-aware attendance summaries count calculation base statuses", () => {
+  const summaryBodies = ["get_attendance_report_summary", "get_employee_attendance_summary"].map(functionBody);
+  for (const body of summaryBodies) {
+    assert.match(body, /source\.attendance_status = 'paid_leave'/i);
+    assert.match(body, /source\.attendance_status = 'unpaid_leave'/i);
+    assert.doesNotMatch(body, /leave_request_groups|leave_request_days/i);
+  }
+});
+
+test("leave balance report uses pending reservations and export-safe limits", () => {
+  const body = functionBody("get_leave_balance_report");
+  assert.match(body, /leave_pending_reservations/i);
+  assert.match(body, /sum\(reservation\.reserved_units\)/i);
+  assert.match(body, /limit least\(greatest\(coalesce\(p_limit, 50\), 1\), 25000\)/i);
+});
+
+test("leave balance report resolves policy names for current, historical, and future leave years", () => {
+  const body = functionBody("get_leave_balance_report");
+  assert.match(body, /account\.leave_year < extract\(year from current_date\)/i);
+  assert.match(body, /make_date\(account\.leave_year, 12, 31\)/i);
+  assert.match(body, /else make_date\(account\.leave_year, 1, 1\)/i);
 });

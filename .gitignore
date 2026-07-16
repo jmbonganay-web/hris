@@ -10,3 +10,7 @@ out/
 .DS_Store
 *.log
 .vercel/
+.worktrees/
+
+.superpowers/
+*.tsbuildinfo

@@ -13,6 +13,8 @@ export function SummaryCards({ mode, metrics }: { mode: ReportMode; metrics: Rep
       <Metric label="Present days" value={metrics.present_days} />
       <Metric label="Absent days" value={metrics.absent_days} />
       <Metric label="Holiday days" value={metrics.holiday_days} />
+      <Metric label="Paid leave days" value={metrics.paid_leave_days} />
+      <Metric label="Unpaid leave days" value={metrics.unpaid_leave_days} />
       <Metric label="Missing clock-outs" value={metrics.missing_clock_out_days} />
       <Metric label="Unscheduled attendance" value={metrics.unscheduled_attendance_days} />
       <Metric label="Worked" value={formatReportDuration(metrics.worked_minutes)} />

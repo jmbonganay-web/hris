@@ -37,3 +37,28 @@ test("serialization preserves stable filter names", () => {
   const filters = parseReportFilters({ mode: "payroll", tab: "daily", page_size: "50", active_only: "1" }, "2026-07-15");
   assert.equal(serializeReportFilters(filters).toString(), "mode=payroll&tab=daily&start_date=2026-07-01&end_date=2026-07-15&active_only=1&page=1&page_size=50");
 });
+
+
+test("accepts leave report tabs and leave filters", () => {
+  const filters = parseReportFilters({
+    tab: "leave_usage",
+    start_date: "2026-07-01",
+    end_date: "2026-07-31",
+    leave_status: "approved",
+    leave_paid_state: "paid",
+  }, "2026-07-31");
+  assert.equal(filters.tab, "leave_usage");
+  assert.equal(filters.leaveStatus, "approved");
+  assert.equal(filters.leavePaidState, "paid");
+});
+
+test("rejects unknown leave filter values", () => {
+  assert.throws(
+    () => parseReportFilters({ leave_status: "secret_status" }, "2026-07-31"),
+    /selected report filter is invalid/i,
+  );
+  assert.throws(
+    () => parseReportFilters({ leave_conflict_type: "unknown_conflict" }, "2026-07-31"),
+    /selected report filter is invalid/i,
+  );
+});

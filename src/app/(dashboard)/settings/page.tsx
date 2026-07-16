@@ -53,6 +53,14 @@ const settings = [
     restricted: true,
   },
   {
+    href: "/settings/leave-types",
+    title: "Leave types",
+    description: "Configure effective-dated leave policies, balances, carryover, notes, and document rules.",
+    icon: CalendarHeart,
+    status: "Available",
+    restricted: true,
+  },
+  {
     href: "#",
     title: "Work locations",
     description: "Configure offices, remote locations, and employee work sites.",
@@ -97,7 +105,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
     <div className="card settings-status-card">
       <div className="settings-icon"><ShieldCheck size={20} /></div>
-      <div><h2 className="card-title">Backend status</h2><p className="muted">Supabase authentication, employee management, organization structure, work schedules, attendance calculations, holidays, overtime approvals, and attendance reports are connected. Leave, documents, notifications, and payroll remain future phases.</p></div>
+      <div><h2 className="card-title">Backend status</h2><p className="muted">Supabase authentication, employee management, organization structure, work schedules, attendance calculations, holidays, overtime approvals, attendance reports, and leave management are connected. Documents, notifications, and payroll remain future phases.</p></div>
     </div>
   </>;
 }

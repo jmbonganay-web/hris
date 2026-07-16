@@ -7,6 +7,12 @@ import {
   employeeSummaryCsv,
   exceptionsCsv,
   overtimeHolidayCsv,
+  leaveBalanceCsv,
+  leaveUsageCsv,
+  leaveConflictCsv,
+  leaveBalanceHeaders,
+  leaveUsageHeaders,
+  leaveConflictHeaders,
 } from "./csv.ts";
 import type {
   AttendanceExceptionReportRow,
@@ -206,4 +212,25 @@ test("CSV and XLSX column contracts share the same authoritative minute fields",
     assert.match(csvSource, pattern);
     assert.match(xlsxSource, pattern);
   }
+});
+
+
+test("leave CSV exports use the approved public headers", () => {
+  assert.deepEqual(leaveBalanceHeaders, [
+    "Employee Number", "Employee Name", "Department", "Leave Type", "Leave Year",
+    "Allocated Units", "Carryover Units", "Adjustment Units", "Used Units",
+    "Pending Units", "Available Units", "Carryover Expires",
+  ]);
+  assert.deepEqual(leaveUsageHeaders, [
+    "Employee Number", "Employee Name", "Department", "Leave Type", "Paid State",
+    "Start Date", "End Date", "Duration", "Status", "Requested Units",
+    "Chargeable Units", "Submitted At", "Reviewed At",
+  ]);
+  assert.deepEqual(leaveConflictHeaders, [
+    "Employee Number", "Employee Name", "Department", "Leave Type", "Leave Date",
+    "Conflict Type", "Conflict Status", "Attendance Status", "Balance Action", "Created At",
+  ]);
+  assert.match(leaveBalanceCsv([]), /^Employee Number,Employee Name,Department/);
+  assert.match(leaveUsageCsv([]), /^Employee Number,Employee Name,Department/);
+  assert.match(leaveConflictCsv([]), /^Employee Number,Employee Name,Department/);
 });
