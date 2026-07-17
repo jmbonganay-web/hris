@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { unreadCountLabel } from "@/features/notifications/presentation";
 import {
   BarChart3,
+  Bell,
   CalendarDays,
   CalendarHeart,
   CalendarRange,
@@ -29,9 +31,11 @@ type NavigationItem = readonly [
 export function Sidebar({
   role,
   documentPermissions,
+  unreadNotificationCount,
 }: {
   role: string;
   documentPermissions: Array<"documents.review" | "documents.manage">;
+  unreadNotificationCount: number;
 }) {
   const pathname = usePathname();
   const isSuperAdmin = role === "super_admin";
@@ -92,6 +96,7 @@ export function Sidebar({
 
   const items: readonly NavigationItem[] = [
     ["/dashboard", "Dashboard", LayoutDashboard],
+    ["/notifications", "Notifications", Bell],
     ["/employees", "Employees", Users],
     ...attendanceItems,
     ...scheduleItems,
@@ -106,6 +111,8 @@ export function Sidebar({
     .filter(([href]) => pathname === href || pathname.startsWith(`${href}/`))
     .sort(([left], [right]) => right.length - left.length)[0]?.[0];
 
+  const unread = unreadCountLabel(unreadNotificationCount);
+
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -115,7 +122,7 @@ export function Sidebar({
       <nav className="nav">
         {items.map(([href, label, Icon]) => (
           <Link key={href} href={href} className={activeHref === href ? "active" : ""}>
-            <Icon size={18} /> {label}
+            <Icon size={18} /> <span>{label}</span>{href === "/notifications" && unread.visual ? <span className="nav-badge" aria-label={unread.accessible}>{unread.visual}</span> : null}
           </Link>
         ))}
       </nav>

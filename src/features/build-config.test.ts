@@ -42,3 +42,17 @@ test("README documents Phase 7 deployment and document operating limits", async 
     assert.match(readme, new RegExp(token.replace(".", "\\."), "i"));
   }
 });
+
+test("README documents Phase 9 notification deployment and operations", async () => {
+  const readme = await readFile(new URL("../../README.md", import.meta.url), "utf8");
+  for (const token of [
+    "202607170005_notifications_reminders_escalations.sql",
+    "hris-daily-notification-cycle",
+    "0 0 * * *",
+    "8:00 AM Asia/Manila",
+    "90-day",
+    "forward-only",
+  ]) {
+    assert.match(readme, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
+  }
+});

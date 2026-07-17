@@ -19,12 +19,14 @@ import { DashboardTrendChart } from "@/components/dashboard/dashboard-trend-char
 import { DashboardUpcomingLeave } from "@/components/dashboard/dashboard-upcoming-leave";
 import { EmployeeDashboardDetails } from "@/components/dashboard/employee-dashboard-details";
 import { PageHeader } from "@/components/page-header";
+import { DashboardNotificationSummary } from "@/components/notifications/dashboard-notification-summary";
 import { requireAttendanceEmployee } from "@/features/attendance/auth";
 import { getTodayAttendanceContext } from "@/features/attendance/queries";
 import { companyDateAt } from "@/features/attendance/time";
 import { getDashboardAnalytics } from "@/features/dashboard/queries";
 import { resolveDashboardRange } from "@/features/dashboard/range";
 import type { DashboardAnalytics } from "@/features/dashboard/types";
+import { getNotificationDashboardSummary } from "@/features/notifications/queries";
 
 function scalar(value: string | string[] | undefined) {
   return typeof value === "string" ? value : undefined;
@@ -65,7 +67,16 @@ export default async function DashboardPage({
     start: scalar(query.start),
     end: scalar(query.end),
   }, companyDateAt());
-  const analytics = await getDashboardAnalytics(range);
+  const [analytics, notificationSummaryRaw] = await Promise.all([
+    getDashboardAnalytics(range),
+    getNotificationDashboardSummary(5),
+  ]);
+  const notificationSummary = {
+    unreadCount: notificationSummaryRaw.unreadCount,
+    urgentCount: notificationSummaryRaw.urgentCount,
+    items: notificationSummaryRaw.items,
+    latestCycleStatus: notificationSummaryRaw.latestCycleStatus,
+  };
   const attendanceContext = analytics.kind === "hr" ? null : await (async () => {
     const { employee } = await requireAttendanceEmployee();
     return getTodayAttendanceContext(employee);
@@ -86,6 +97,7 @@ export default async function DashboardPage({
       />
       <DashboardPeriodFilter range={range} />
       <DashboardMetricGrid items={metricItems(analytics)} />
+      <DashboardNotificationSummary summary={notificationSummary} />
 
       {attendanceContext ? <section className="dashboard-my-attendance"><AttendanceClockCard context={attendanceContext} /></section> : null}
 

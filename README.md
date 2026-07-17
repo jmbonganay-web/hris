@@ -996,3 +996,60 @@ npm test
 npx tsc --noEmit
 npm run build
 ```
+
+## Phase 9 in-app notifications, reminders, and escalations
+
+Phase 9 adds a unified in-app notification center, immediate workflow alerts, configurable reminder and escalation rules, and a database-native daily notification cycle. Email, SMS, and push delivery remain outside this phase.
+
+Apply the migration after Phase 8:
+
+```text
+supabase/migrations/202607170004_dashboard_analytics.sql
+supabase/migrations/202607170005_notifications_reminders_escalations.sql
+```
+
+### Deployment and operating procedure
+
+1. Apply `202607170005_notifications_reminders_escalations.sql` after `202607170004_dashboard_analytics.sql`.
+2. Confirm the `pg_cron` extension is enabled and the `hris-daily-notification-cycle` job exists.
+3. Confirm the cron schedule is exactly `0 0 * * *`, which runs at 8:00 AM Asia/Manila.
+4. Confirm all six seeded rules use the approved timing defaults and 90-day retention.
+5. Test read, unread, dismiss, bulk mark-read, and bulk dismiss actions with separate employee accounts.
+6. Confirm HR Admins can view rules and cycle history but only Super Admins can edit rules, reset defaults, or run the cycle manually.
+7. Retry the manual cycle and confirm recipient-stage source keys prevent duplicate notifications.
+8. Confirm manager document escalations contain status-only context and no filenames, file links, review reasons, or document metadata.
+9. Keep private notes, document metadata, source payloads, raw SQL errors, signed URLs, and storage paths out of application logs and notification payloads.
+10. Use forward-only patch migrations for defects discovered after deployment.
+
+### Approved default rules
+
+| Rule | Initial timing | Escalation | Repeat | Retention |
+|---|---:|---:|---:|---:|
+| Attendance exception | 1 day unresolved | 3 days | Daily | 90 days |
+| Leave approval | 1 day pending | 3 days | Daily | 90 days |
+| Overtime approval | 1 day pending | 3 days | Daily | 90 days |
+| Document review | 2 days pending | 5 days | Daily | 90 days |
+| Expiring document | 30 days before expiry | 7 days before expiry | Daily | 90 days |
+| Expired document | Immediately | 3 days unresolved | Daily | 90 days |
+
+Resolved notifications are archived after the configured retention period; they are not permanently deleted by the daily cycle. The dedicated `/notifications` page remains recipient-owned, while `/admin/notifications/settings` is read-only for HR Admins and configurable by Super Admins.
+
+### Phase 9 verification
+
+After applying the migration, verify:
+
+- `notifications` includes the Phase 9 lifecycle, module, priority, safe-context, and escalation fields.
+- `notification_rules`, `notification_events`, and `notification_cycle_runs` exist with Row Level Security enabled.
+- Recipient lifecycle functions derive the recipient from `auth.uid()`.
+- Internal processors and `run_daily_notification_cycle` are not executable by browser roles.
+- The cron job is named `hris-daily-notification-cycle` and uses `0 0 * * *`.
+- The six seeded rules have the approved defaults and 90-day retention.
+
+Run application verification:
+
+```bash
+npm ci
+npm test
+npx tsc --noEmit
+npm run build
+```

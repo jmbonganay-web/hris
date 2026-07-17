@@ -1,0 +1,7 @@
+import Link from "next/link";
+import type { NotificationModule, NotificationPriority, NotificationRunStatus } from "@/features/notifications/types";
+import { NotificationPriorityBadge } from "./notification-priority-badge";
+export type DashboardNotificationSummaryData={unreadCount:number;urgentCount:number;items:Array<{id:string;title:string;module:NotificationModule;priority:NotificationPriority;actionUrl:string|null}>;latestCycleStatus?:NotificationRunStatus|null};
+export function DashboardNotificationSummary({ summary }: { summary: DashboardNotificationSummaryData }) {
+  return <article className="card dashboard-action-card"><div className="card-header-row"><div><h2 className="card-title">Notifications</h2><p className="muted">{summary.unreadCount} unread · {summary.urgentCount} urgent</p></div><Link className="table-link" href="/notifications">View all</Link></div><div className="dashboard-action-list">{summary.items.length?summary.items.map(item=><Link className="dashboard-action-link" href={item.actionUrl??'/notifications'} key={item.id}><span>{item.title}</span><NotificationPriorityBadge priority={item.priority}/></Link>):<div className="empty-state"><span>No notifications need attention.</span></div>}</div>{summary.latestCycleStatus&&['failed','partial_failed'].includes(summary.latestCycleStatus)?<Link className="form-error" href="/admin/notifications/settings">Latest notification cycle needs review.</Link>:null}</article>;
+}

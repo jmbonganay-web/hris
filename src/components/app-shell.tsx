@@ -6,6 +6,7 @@ export type ShellUser = {
   email: string;
   role: string;
   documentPermissions: Array<"documents.review" | "documents.manage">;
+  unreadNotificationCount: number;
 };
 
 export function AppShell({
@@ -17,7 +18,7 @@ export function AppShell({
 }) {
   return (
     <div className="app-shell">
-      <Sidebar role={user.role} documentPermissions={user.documentPermissions} />
+      <Sidebar role={user.role} documentPermissions={user.documentPermissions} unreadNotificationCount={user.unreadNotificationCount} />
       <main className="main">
         <Topbar user={user} />
         <div className="content">{children}</div>

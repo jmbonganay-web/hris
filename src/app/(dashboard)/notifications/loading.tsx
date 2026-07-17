@@ -1,0 +1,1 @@
+export default function NotificationsLoading(){return <div className="notification-center-layout"><div className="skeleton skeleton-toolbar"/><div className="notification-summary-grid">{Array.from({length:4},(_,i)=><div className="card skeleton dashboard-loading-card" key={i}/>)}</div><div className="card skeleton skeleton-table"/></div>}
