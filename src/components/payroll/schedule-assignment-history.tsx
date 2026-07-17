@@ -1,0 +1,7 @@
+import type { PayrollScheduleAssignment } from "@/features/payroll/types";
+import { formatPayrollDate, payrollScheduleTypeLabel } from "@/features/payroll/presentation";
+import { PayrollStatusBadge } from "./payroll-status-badge";
+import { PayrollRequestSubmit } from "./payroll-request-submit";
+export function ScheduleAssignmentHistory({ employeeId, title, assignments, editable = false }: { employeeId: string; title: string; assignments: PayrollScheduleAssignment[]; editable?: boolean }) {
+  return <section className="card content-stack"><div className="section-heading"><div><h2>{title}</h2><p>Effective-dated payroll schedule assignments.</p></div></div>{assignments.length === 0 ? <div className="empty">No payroll schedule assignments in this section.</div> : <div className="table-wrap"><table><thead><tr><th>Schedule</th><th>Effective range</th><th>Status</th><th>Actions</th></tr></thead><tbody>{assignments.map((assignment) => <tr key={assignment.id}><td>{assignment.payrollScheduleName}<span className="table-subtext">{payrollScheduleTypeLabel(assignment.payrollScheduleType)}</span></td><td>{formatPayrollDate(assignment.effectiveFrom)} – {formatPayrollDate(assignment.effectiveTo)}</td><td><PayrollStatusBadge status={assignment.status}/>{assignment.overrideMidPeriod ? <span className="table-subtext">Mid-period override</span> : null}</td><td>{editable && assignment.status === "draft" ? <PayrollRequestSubmit employeeId={employeeId} id={assignment.id} version={assignment.version} kind="assignment"/> : null}</td></tr>)}</tbody></table></div>}</section>;
+}

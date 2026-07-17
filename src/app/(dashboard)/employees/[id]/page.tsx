@@ -84,7 +84,7 @@ export default async function EmployeeDetailPage({
       <PageHeader
         title={displayName}
         description={`${employee.employee_number} · ${employee.job_title?.title ?? "Unassigned role"}`}
-        action={<div className="header-actions"><Link className="btn" href="/employees">Back</Link>{access.canManage && <Link className="btn" href={`/admin/documents/employees/${employee.id}`}>Documents</Link>}{access.canManage && <Link className="btn primary" href={`/employees/${employee.id}/employment/edit`}>Edit employment</Link>}</div>}
+        action={<div className="header-actions"><Link className="btn" href="/employees">Back</Link>{access.canManage && <Link className="btn" href={`/admin/documents/employees/${employee.id}`}>Documents</Link>}{access.canManage && <Link className="btn" href={`/employees/${employee.id}/compensation`}>Compensation</Link>}{access.canManage && <Link className="btn primary" href={`/employees/${employee.id}/employment/edit`}>Edit employment</Link>}</div>}
       />
       {success && <p className="form-success">{successMessage(success)}</p>}
       {error && <p className="form-error">{errorMessage(error)}</p>}

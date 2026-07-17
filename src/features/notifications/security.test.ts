@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-const sql = await readFile(new URL("../../../supabase/migrations/202607170005_notifications_reminders_escalations.sql", import.meta.url), "utf8");
+const notificationSql = await readFile(new URL("../../../supabase/migrations/202607170005_notifications_reminders_escalations.sql", import.meta.url), "utf8");
+const payrollSql = await readFile(new URL("../../../supabase/migrations/202607180002_payroll_foundation.sql", import.meta.url), "utf8");
+const sql = `${notificationSql}\n${payrollSql}`;
 
 test("notification tables use RLS and recipient-only reads", () => {
   for (const table of ["notifications", "notification_rules", "notification_events", "notification_cycle_runs"]) {
@@ -31,4 +33,21 @@ test("payload guard inspects JSON keys without rejecting safe text values", () =
   assert.match(definition, /jsonb_each/i);
   assert.match(definition, /jsonb_array_elements/i);
   assert.doesNotMatch(definition, /lower\(coalesce\(p_payload[^;]+::text\)/i);
+});
+
+
+test("payroll payload guards reject compensation values and private reasons", () => {
+  const definition = sql.match(
+    /create or replace function public\.assert_safe_notification_payload[\s\S]*?\$\$;/gi,
+  )?.at(-1) ?? "";
+  for (const token of [
+    "monthly_salary",
+    "hourly_rate",
+    "amount",
+    "change_reason",
+    "override_reason",
+    "rejection_reason",
+  ]) {
+    assert.match(definition, new RegExp(token, "i"));
+  }
 });

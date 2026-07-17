@@ -56,3 +56,31 @@ test("README documents Phase 9 notification deployment and operations", async ()
     assert.match(readme, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
   }
 });
+
+test("README documents Phase 10A payroll deployment and operating boundaries", async () => {
+  const readme = await readFile(new URL("../../README.md", import.meta.url), "utf8");
+  for (const token of [
+    "202607180001_fix_notification_archive_outer_join_lock.sql",
+    "202607180002_payroll_foundation.sql",
+    "hris-daily-payroll-period-generation",
+    "15 0 * * *",
+    "8:15 AM Asia/Manila",
+    "/payroll/approvals",
+    "/me/compensation",
+    "Phase 10B exclusions",
+    "forward-only",
+  ]) {
+    assert.match(readme, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
+  }
+});
+
+test("Phase 10A requires no new environment secret", () => {
+  assert.match(envExample, /No additional payroll-specific environment variables are required/i);
+  assert.doesNotMatch(envExample, /PAYROLL_(?:SECRET|KEY|TOKEN)=/i);
+});
+
+test("production build type-checks before bypassing the hanging Next.js worker", async () => {
+  const packageJson = JSON.parse(await readFile(new URL("../../package.json", import.meta.url), "utf8")) as { scripts: { build: string } };
+  assert.equal(packageJson.scripts.build, "tsc --noEmit && next build");
+  assert.match(source, /typescript:\s*\{[\s\S]*ignoreBuildErrors:\s*true/);
+});

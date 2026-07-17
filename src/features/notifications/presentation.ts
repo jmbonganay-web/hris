@@ -11,6 +11,7 @@ const moduleLabels: Record<NotificationModule, string> = {
   leave: "Leave",
   overtime: "Overtime",
   documents: "Documents",
+  payroll: "Payroll",
   system: "System",
 };
 const priorityLabels: Record<NotificationPriority, string> = {
@@ -33,6 +34,12 @@ const ruleLabels: Record<NotificationRuleType, string> = {
   document_review_pending: "Pending document review",
   document_expiring: "Expiring document",
   document_expired: "Expired document",
+  compensation_approval_pending: "Pending compensation approval",
+  schedule_assignment_approval_pending: "Pending payroll schedule assignment",
+  payroll_period_ready: "Payroll period ready",
+  payroll_period_review_pending: "Payroll period review pending",
+  payroll_period_approval_pending: "Payroll period approval pending",
+  payroll_period_reopened: "Payroll period reopened",
 };
 const runStatusLabels: Record<NotificationRunStatus, string> = {
   running: "Running",

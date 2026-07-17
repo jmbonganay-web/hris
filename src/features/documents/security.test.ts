@@ -1,8 +1,19 @@
+// Updated Phase 9 compatibility: validates the effective forward-only document RLS patch.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const sql = await readFile(new URL("../../../supabase/migrations/202607170001_employee_document_management.sql", import.meta.url), "utf8");
+
+const categoryPolicyPatch = await readFile(
+  new URL(
+    "../../../supabase/migrations/202607170002_fix_document_category_policy_recursion.sql",
+    import.meta.url,
+  ),
+  "utf8",
+);
+
+const effectiveDocumentSecuritySql = `${sql}\n${categoryPolicyPatch}`;
 
 test("document tables enable RLS and deny direct mutation", () => {
   for (const table of [
@@ -58,11 +69,25 @@ function securityFunctionSql(name: string) {
 }
 
 test("employee document policies allow only own employee-visible identities", () => {
-  const policy = sql.match(/create policy employee_documents_safe_select[\s\S]*?;\n/i)?.[0] ?? "";
-  assert.match(policy, /e\.profile_id\s*=\s*auth\.uid\(\)/i);
-  assert.match(policy, /=\s*'employee_hr'/i);
-  assert.doesNotMatch(sql, /create policy[^;]*on public\.employee_document_versions/i);
-  assert.doesNotMatch(sql, /create policy[^;]*on public\.document_reviews/i);
+  assert.match(
+    categoryPolicyPatch,
+    /create policy employee_documents_safe_select[\s\S]*?employee_id\s*=\s*public\.current_employee_id\(\)[\s\S]*?document_category_allows_employee_document_access/i,
+  );
+
+  assert.match(
+    categoryPolicyPatch,
+    /create or replace function public\.document_category_allows_employee_document_access[\s\S]*?coalesce\(p_visibility_override,\s*current_version\.default_visibility\)\s*=\s*'employee_hr'/i,
+  );
+
+  assert.doesNotMatch(
+    effectiveDocumentSecuritySql,
+    /create policy[^;]*on public\.employee_document_versions/i,
+  );
+
+  assert.doesNotMatch(
+    effectiveDocumentSecuritySql,
+    /create policy[^;]*on public\.document_reviews/i,
+  );
 });
 
 test("review, manage, grants, and permanent deletion remain independently authorized", () => {
