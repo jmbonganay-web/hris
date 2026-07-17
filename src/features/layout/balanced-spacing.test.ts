@@ -108,3 +108,24 @@ test("dashboard analytics use the shared balanced spacing system", () => {
   assert.match(css, /dashboard-analytics-grid[\s\S]*gap:\s*var\(--space-section\)/);
   assert.match(css, /dashboard-period-filter[\s\S]*gap:\s*var\(--space-related\)/);
 });
+
+test("notification layouts use Balanced spacing and responsive collapse", () => {
+  for (const className of [
+    "notification-center-layout",
+    "notification-summary-grid",
+    "notification-filter-grid",
+    "notification-list",
+    "notification-card",
+    "notification-bulk-actions",
+    "notification-settings-grid",
+    "notification-rule-form",
+    "notification-run-summary",
+  ]) {
+    assert.match(css, new RegExp(`\\.${className}\\s*\\{`));
+  }
+  assert.match(css, /notification-center-layout[\s\S]*gap:\s*var\(--space-section\)/);
+  assert.match(css, /notification-card[\s\S]*gap:\s*var\(--space-related\)/);
+  assert.match(css, /@media\s*\(max-width:\s*1100px\)[\s\S]*notification-summary-grid[\s\S]*repeat\(2/);
+  assert.match(css, /@media\s*\(max-width:\s*760px\)[\s\S]*notification-summary-grid[\s\S]*1fr/);
+  assert.match(css, /@media\s*\(max-width:\s*760px\)[\s\S]*notification-filter-grid[\s\S]*1fr/);
+});

@@ -2210,3 +2210,54 @@ a.settings-card:hover { border-color: #bfdbfe; transform: translateY(-1px); box-
     text-align: left;
   }
 }
+
+/* Phase 9 notification center and reminder settings */
+.notification-center-layout { display: grid; gap: var(--space-section); min-width: 0; }
+.notification-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-card); }
+.notification-filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-related); align-items: end; }
+.notification-filter-grid label { display: grid; gap: var(--space-compact); min-width: 0; font-size: 13px; font-weight: 700; }
+.notification-filter-grid .field { width: 100%; min-width: 0; font-weight: 400; }
+.notification-filter-grid .form-actions { align-self: end; }
+.notification-list { display: grid; gap: var(--space-related); }
+.notification-card { display: grid; gap: var(--space-related); min-width: 0; }
+.notification-card h2, .notification-card h3 { margin: 0 0 6px; font-size: 17px; }
+.notification-card p { margin: 0; line-height: 1.55; }
+.notification-badges { display: flex; flex-wrap: wrap; gap: var(--space-compact); align-items: center; }
+.notification-meta { display: flex; flex-wrap: wrap; gap: var(--space-related); color: var(--muted); font-size: 13px; }
+.notification-bulk-actions { display: flex; gap: var(--space-related); align-items: center; flex-wrap: wrap; }
+.notification-settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--space-card); }
+.notification-rule-form { display: grid; gap: var(--space-card); align-content: start; }
+.notification-rule-form .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.notification-run-summary { display: grid; gap: var(--space-related); }
+.notification-bell { position: relative; }
+.topbar-notification-badge { position: absolute; top: 1px; right: 0; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px; display: grid; place-items: center; background: var(--danger); color: white; font-size: 10px; font-weight: 800; }
+.nav a .nav-badge { margin-left: auto; min-width: 22px; height: 20px; padding: 0 6px; border-radius: 999px; display: inline-grid; place-items: center; background: #ef4444; color: white; font-size: 11px; font-weight: 800; }
+@media (max-width: 1100px) { .notification-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) {
+  .notification-summary-grid, .notification-filter-grid, .notification-settings-grid, .notification-rule-form .form-grid { grid-template-columns: 1fr; }
+  .notification-filter-grid .form-actions, .notification-bulk-actions { align-items: stretch; flex-direction: column; }
+  .notification-filter-grid .btn, .notification-bulk-actions .btn, .notification-card .form-actions .btn { width: 100%; justify-content: center; }
+}
+
+.notification-settings-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-card);
+}
+
+.notification-confirm-form {
+  display: grid;
+  align-content: start;
+  gap: var(--space-related);
+}
+
+@media (max-width: 760px) {
+  .notification-settings-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .notification-confirm-form .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
