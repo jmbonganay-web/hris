@@ -1053,3 +1053,121 @@ npm test
 npx tsc --noEmit
 npm run build
 ```
+
+## Phase 10A payroll foundation
+
+Phase 10A establishes payroll schedules, automatically generated payroll periods, effective-dated employee compensation, effective-dated payroll schedule assignments, approval workflows, and immutable payroll audit history. It supports monthly salary and hourly-rate profiles without calculating payroll amounts.
+
+Apply the forward-only migrations in this order:
+
+```text
+supabase/migrations/202607170005_notifications_reminders_escalations.sql
+supabase/migrations/202607180001_fix_notification_archive_outer_join_lock.sql
+supabase/migrations/202607180002_payroll_foundation.sql
+```
+
+Do not edit or rerun an earlier migration to apply a Phase 10A correction. Add a new forward-only migration instead.
+
+### Phase 10A routes
+
+| Route | Purpose | Access |
+|---|---|---|
+| `/payroll` | Role-appropriate payroll overview | Employee, HR Admin, Super Admin |
+| `/payroll/schedules` | List and manage payroll schedules | HR Admin, Super Admin |
+| `/payroll/schedules/new` | Create a payroll schedule | HR Admin, Super Admin |
+| `/payroll/schedules/[scheduleId]` | Edit, preview, activate, or deactivate a schedule | HR Admin, Super Admin |
+| `/payroll/periods` | Filter and review generated payroll periods | HR Admin, Super Admin |
+| `/payroll/periods/[periodId]` | Review and transition a payroll period | HR Admin, Super Admin |
+| `/payroll/approvals` | Approve or reject compensation and schedule requests | Super Admin |
+| `/employees/[employeeId]/compensation` | Manage an employee’s compensation and schedule history | HR Admin, Super Admin |
+| `/employees/[employeeId]/compensation/new` | Create a compensation draft | HR Admin, Super Admin |
+| `/employees/[employeeId]/compensation/[recordId]` | Edit an eligible compensation draft | HR Admin, Super Admin |
+| `/me/compensation` | View current approved compensation and current schedule | Employee, HR Admin, Super Admin |
+
+Managers receive no direct-report compensation access. Employees can read only their own currently effective approved compensation and payroll schedule. HR Admins create and submit drafts and manage non-final periods. Super Admins approve or reject compensation and schedule assignments, approve and lock periods, and reopen locked periods with a required reason.
+
+### Payroll schedules and periods
+
+Phase 10A supports:
+
+- Weekly schedules
+- Biweekly schedules
+- Semi-monthly schedules
+- Monthly schedules
+- One organization currency, initially `PHP`
+- Payroll timezone `Asia/Manila`
+- Previous-business-day adjustment for weekends and configured company holidays
+- A rolling 12-month generation horizon
+- Human-readable payroll period codes
+
+The migration creates a default PHP semi-monthly schedule only when no payroll schedule already exists. It does not assign employees or create compensation records automatically.
+
+Payroll period status transitions are:
+
+```text
+draft → open
+open → under_review
+under_review → open
+under_review → approved
+approved → locked
+locked → under_review
+```
+
+Only a Super Admin can approve, lock, or reopen a locked period. Reopening requires a reason and returns the period to `under_review`.
+
+### Scheduled period generation
+
+The database job is named:
+
+```text
+hris-daily-payroll-period-generation
+```
+
+Its cron schedule is:
+
+```text
+15 0 * * *
+```
+
+This runs daily at **8:15 AM Asia/Manila**. The job calls `ensure_payroll_period_horizon('scheduled', null)` and keeps active schedules generated through the configured rolling horizon. Generation is idempotent and protected by an advisory transaction lock. Authenticated browser sessions cannot invoke scheduled-mode generation; manual generation requires a Super Admin.
+
+### Supabase deployment and verification
+
+1. Confirm Phase 9 and `202607180001_fix_notification_archive_outer_join_lock.sql` are already applied.
+2. Open the Supabase SQL Editor and apply `supabase/migrations/202607180002_payroll_foundation.sql` once.
+3. Confirm the migration completes without an error.
+4. Run `phase10a_post_migration_verification.sql`.
+5. Confirm all seven payroll tables have Row Level Security enabled.
+6. Confirm the protected payroll RPCs use `SECURITY DEFINER` and `set search_path = pg_catalog, public`.
+7. Confirm the `hris-daily-payroll-period-generation` cron job is active with `15 0 * * *`.
+8. Sign in separately as Employee, Manager, HR Admin, and Super Admin to verify the role matrix.
+9. Create a compensation draft, submit it, approve it as Super Admin, and confirm the prior approved range closes without overlap.
+10. Create a payroll schedule assignment and verify a mid-period change requires an explicit override and reason.
+11. Generate periods twice and confirm the second run creates no duplicates.
+12. Confirm notification payloads contain no compensation amounts or private reasons.
+
+Run application verification:
+
+```bash
+npm ci
+npm test
+npx tsc --noEmit
+npm run build
+```
+
+### Phase 10B exclusions
+
+Phase 10A does not include:
+
+- Gross-pay calculation
+- Attendance-to-payroll conversion
+- Overtime-rate calculation
+- Holiday-pay calculation
+- Allowances or bonuses
+- Deductions
+- Taxes or statutory contributions
+- Payslips
+- Bank-payment files
+- Payroll register or accounting exports
+
+These calculation and payroll-output capabilities belong to Phases 10B and 10C.

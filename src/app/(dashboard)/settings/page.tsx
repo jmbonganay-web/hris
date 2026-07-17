@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   TimerReset,
   UserRoundCog,
+  WalletCards,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { getDocumentPermissionContext } from "@/features/documents/auth";
@@ -119,6 +120,13 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     ...(canManage
       ? [
           {
+            href: "/payroll/schedules",
+            title: "Payroll schedules",
+            description: "Configure payroll frequencies, cutoff timing, payment dates, and rolling period generation.",
+            icon: WalletCards,
+            status: "Available" as const,
+          },
+          {
             href: "/admin/notifications/settings",
             title: "Notification settings",
             description: isSuperAdmin
@@ -164,7 +172,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
     <div className="card settings-status-card">
       <div className="settings-icon"><ShieldCheck size={20} /></div>
-      <div><h2 className="card-title">Backend status</h2><p className="muted">Supabase authentication, employee management, organization structure, work schedules, attendance calculations, holidays, overtime approvals, attendance reports, leave management, employee document management, role-specific dashboard analytics, and scheduled in-app reminders and escalations are connected. Payroll and announcements remain future phases.</p></div>
+      <div><h2 className="card-title">Backend status</h2><p className="muted">Supabase authentication, employee management, organization structure, work schedules, attendance calculations, holidays, overtime approvals, attendance reports, leave management, employee document management, role-specific dashboard analytics, and scheduled in-app reminders and escalations, and the payroll foundation are connected. Payroll calculations, exports, and announcements remain future phases.</p></div>
     </div>
   </>;
 }

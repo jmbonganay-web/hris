@@ -1,0 +1,5 @@
+import type { PayrollAuditEvent } from "@/features/payroll/types";
+import { formatPayrollDateTime } from "@/features/payroll/presentation";
+export function PayrollAuditTimeline({ events }: { events: PayrollAuditEvent[] }) {
+  return <section className="card content-stack"><div className="section-heading"><div><h2>Audit timeline</h2><p>Immutable state transitions and controlled payroll actions.</p></div></div>{events.length === 0 ? <div className="empty">No audit events recorded.</div> : <ol className="payroll-timeline">{events.map((event) => <li key={event.id}><span className="payroll-timeline-dot"/><div><div className="card-header-row"><strong>{event.eventType.replaceAll("_", " ")}</strong><time>{formatPayrollDateTime(event.createdAt)}</time></div><p className="muted">{event.actorName ?? "Scheduled system"}{event.fromStatus || event.toStatus ? ` · ${event.fromStatus ?? "new"} → ${event.toStatus ?? "unchanged"}` : ""}</p>{event.reason ? <p>{event.reason}</p> : null}</div></li>)}</ol>}</section>;
+}

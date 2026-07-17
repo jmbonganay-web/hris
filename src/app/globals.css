@@ -2261,3 +2261,210 @@ a.settings-card:hover { border-color: #bfdbfe; transform: translateY(-1px); box-
     justify-content: center;
   }
 }
+
+/* Phase 10A payroll foundation */
+.payroll-layout {
+  display: grid;
+  align-content: start;
+  gap: var(--space-section);
+  min-width: 0;
+}
+
+.payroll-overview-grid {
+  display: grid;
+  gap: var(--space-section);
+  min-width: 0;
+}
+
+.payroll-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-card);
+}
+
+.compensation-summary-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.payroll-summary-card {
+  display: grid;
+  align-content: start;
+  gap: var(--space-related);
+  min-width: 0;
+}
+
+.payroll-summary-card > span,
+.payroll-approval-comparison span,
+.payroll-approval-comparison small {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.payroll-summary-card > strong {
+  font-size: 30px;
+  line-height: 1;
+}
+
+.payroll-summary-card > p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.payroll-missing-list {
+  display: grid;
+  gap: var(--space-related);
+}
+
+.payroll-missing-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-card);
+  padding: var(--space-related) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.payroll-missing-item:last-child {
+  border-bottom: 0;
+}
+
+.payroll-schedule-preview,
+.payroll-period-list {
+  min-width: 0;
+}
+
+.payroll-schedule-preview .table-wrap,
+.payroll-period-list.table-wrap {
+  border-radius: 12px;
+}
+
+.payroll-filter-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(140px, 1fr)) auto;
+  align-items: end;
+  gap: var(--space-related);
+}
+
+.payroll-filter-form label {
+  display: grid;
+  gap: var(--space-compact);
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.payroll-filter-form .field {
+  width: 100%;
+  min-width: 0;
+  font-weight: 400;
+}
+
+.payroll-approval-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-card);
+}
+
+.payroll-approval-card {
+  display: grid;
+  align-content: start;
+  gap: var(--space-card);
+  min-width: 0;
+}
+
+.payroll-approval-comparison {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-related);
+}
+
+.payroll-approval-comparison > div {
+  display: grid;
+  gap: var(--space-compact);
+  min-width: 0;
+  padding: var(--space-related);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.payroll-approval-comparison strong {
+  overflow-wrap: anywhere;
+}
+
+.payroll-timeline {
+  position: relative;
+  display: grid;
+  gap: var(--space-card);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.payroll-timeline > li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: var(--space-related);
+  min-width: 0;
+}
+
+.payroll-timeline-dot {
+  width: 12px;
+  height: 12px;
+  margin-top: 4px;
+  border: 3px solid var(--primary-soft);
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+@media (max-width: 1100px) {
+  .payroll-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .payroll-filter-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .payroll-filter-form .form-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  .payroll-summary-grid,
+  .compensation-summary-grid,
+  .payroll-filter-form,
+  .payroll-approval-grid,
+  .payroll-approval-comparison {
+    grid-template-columns: 1fr;
+  }
+
+  .payroll-filter-form .form-actions {
+    grid-column: auto;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .payroll-filter-form .btn,
+  .payroll-approval-card .form-actions,
+  .payroll-approval-card .form-actions .btn,
+  .payroll-missing-item .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .payroll-missing-item {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .payroll-period-list table,
+  .payroll-schedule-preview table {
+    min-width: 760px;
+  }
+}

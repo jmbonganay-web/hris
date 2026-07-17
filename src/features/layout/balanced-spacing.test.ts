@@ -129,3 +129,24 @@ test("notification layouts use Balanced spacing and responsive collapse", () => 
   assert.match(css, /@media\s*\(max-width:\s*760px\)[\s\S]*notification-summary-grid[\s\S]*1fr/);
   assert.match(css, /@media\s*\(max-width:\s*760px\)[\s\S]*notification-filter-grid[\s\S]*1fr/);
 });
+
+test("payroll layouts use balanced spacing and responsive stacks", () => {
+  for (const className of [
+    "payroll-layout",
+    "payroll-overview-grid",
+    "payroll-summary-grid",
+    "compensation-summary-grid",
+    "payroll-schedule-preview",
+    "payroll-period-list",
+    "payroll-filter-form",
+    "payroll-approval-grid",
+    "payroll-approval-card",
+    "payroll-timeline",
+  ]) {
+    assert.match(css, new RegExp(`\\.${className}(?:[\\s.{:#,>]|$)`));
+  }
+  assert.match(css, /payroll-layout[\s\S]*gap:\s*var\(--space-section\)/);
+  assert.match(css, /payroll-summary-grid[\s\S]*gap:\s*var\(--space-card\)/);
+  assert.match(css, /payroll-approval-card[\s\S]*gap:\s*var\(--space-card\)/);
+  assert.match(css, /@media\s*\(max-width:\s*760px\)[\s\S]*?payroll-filter-form[\s\S]*?grid-template-columns:\s*1fr/);
+});

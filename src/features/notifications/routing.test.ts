@@ -2,15 +2,20 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const sql = await readFile(
+const notificationSql = await readFile(
   new URL("../../../supabase/migrations/202607170005_notifications_reminders_escalations.sql", import.meta.url),
   "utf8",
 );
+const payrollSql = await readFile(
+  new URL("../../../supabase/migrations/202607180002_payroll_foundation.sql", import.meta.url),
+  "utf8",
+);
+const sql = `${notificationSql}\n${payrollSql}`;
 
 function functionSql(name: string) {
   return sql.match(
-    new RegExp(`create or replace function public\\.${name}\\s*\\([\\s\\S]*?\\$\\$;`, "i"),
-  )?.[0] ?? "";
+    new RegExp(`create or replace function public\\.${name}\\s*\\([\\s\\S]*?\\$\\$;`, "gi"),
+  )?.at(-1) ?? "";
 }
 
 test("attendance routing follows employee manager HR and Super Admin stages", () => {
@@ -62,10 +67,14 @@ test("notification action URLs are server allowlisted", () => {
     "/admin/documents/review",
     "/notifications",
     "/admin/notifications/settings",
+    "/payroll",
+    "/payroll/approvals",
+    "/payroll/periods",
+    "/me/compensation",
   ]) {
     assert.match(definition, new RegExp(route.replaceAll("/", "\\/")));
   }
-  assert.match(definition, /protocol-relative/i);
+  assert.match(definition, /starts_with\(p_url,\s*'\/\/'\)/i);
   assert.match(definition, /NOTIFICATION_INVALID_ACTION_URL/i);
 });
 
@@ -128,4 +137,12 @@ test("approval processors do not route escalations back to the source employee",
     assert.match(definition, /employee_profile_id/i);
     assert.match(definition, /id\s*<>\s*r\.employee_profile_id/i);
   }
+});
+
+
+test("payroll notifications use server-selected allowlisted routes", () => {
+  const definition = functionSql("validate_notification_action_url");
+  assert.match(definition, /\/payroll/i);
+  assert.match(definition, /\/me\/compensation/i);
+  assert.doesNotMatch(definition, /https?:\/\//i);
 });

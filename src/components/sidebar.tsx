@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   TimerReset,
   Users,
+  WalletCards,
 } from "lucide-react";
 
 type NavigationItem = readonly [
@@ -90,6 +91,11 @@ export function Sidebar({
     ...(isSuperAdmin ? [["/admin/documents/permissions", "Document Permissions", ShieldCheck] as const] : []),
   ];
 
+  const payrollItems: readonly NavigationItem[] = [
+    ["/me/compensation", "My Compensation", WalletCards],
+    ...(isHr ? [["/payroll", "Payroll", WalletCards] as const] : []),
+  ];
+
   const hrOnlyItems: readonly NavigationItem[] = isHr
     ? [["/reports", "Reports", BarChart3]] as const
     : [];
@@ -102,6 +108,7 @@ export function Sidebar({
     ...scheduleItems,
     ...leaveItems,
     ...documentItems,
+    ...payrollItems,
     ...hrOnlyItems,
     ["/announcements", "Announcements", Megaphone],
     ["/settings", "Settings", Settings],

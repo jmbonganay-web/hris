@@ -3,6 +3,7 @@ export const notificationModuleValues = [
   "leave",
   "overtime",
   "documents",
+  "payroll",
   "system",
 ] as const;
 export type NotificationModule = (typeof notificationModuleValues)[number];
@@ -26,6 +27,12 @@ export const notificationRuleTypeValues = [
   "document_review_pending",
   "document_expiring",
   "document_expired",
+  "compensation_approval_pending",
+  "schedule_assignment_approval_pending",
+  "payroll_period_ready",
+  "payroll_period_review_pending",
+  "payroll_period_approval_pending",
+  "payroll_period_reopened",
 ] as const;
 export type NotificationRuleType = (typeof notificationRuleTypeValues)[number];
 
