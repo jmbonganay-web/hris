@@ -91,3 +91,20 @@ test("document pages restore missing stack, form, card, and permission spacing",
   assert.match(css, /\.document-requirement-grid\s*>\s*\.card[\s\S]*?\{[\s\S]*?display:\s*grid;[\s\S]*?gap:\s*var\(--space-card\)/);
   assert.match(css, /\.permission-control\s*\{[\s\S]*?display:\s*grid;[\s\S]*?grid-template-columns:/);
 });
+
+test("dashboard analytics use the shared balanced spacing system", () => {
+  for (const className of [
+    "dashboard-period-filter",
+    "dashboard-custom-range",
+    "dashboard-metric-grid",
+    "dashboard-metric-card",
+    "dashboard-analytics-grid",
+    "dashboard-chart-card",
+    "dashboard-chart-legend",
+    "dashboard-breakdown-list",
+    "dashboard-action-list",
+    "dashboard-balance-grid",
+  ]) assert.match(css, new RegExp(`\\.${className}\\s*\\{`));
+  assert.match(css, /dashboard-analytics-grid[\s\S]*gap:\s*var\(--space-section\)/);
+  assert.match(css, /dashboard-period-filter[\s\S]*gap:\s*var\(--space-related\)/);
+});

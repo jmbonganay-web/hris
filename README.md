@@ -954,3 +954,45 @@ npm run build
 ```
 
 Before enabling uploads in production, apply the migration in a preview or local Supabase environment and confirm the bucket is private, protected functions use `SECURITY DEFINER` with a fixed search path, and arbitrary storage listing is denied.
+
+## Phase 8 role-specific dashboard analytics
+
+Phase 8 replaces the previous mock dashboard summaries on `/dashboard` with live, role-scoped analytics. It reuses existing employee, attendance, leave, overtime, schedule, notification, and document-compliance records without adding a separate analytics route or a charting dependency.
+
+Apply the migration after the complete Phase 7 sequence, including the final active-version trigger patch:
+
+```text
+supabase/migrations/202607170003_fix_document_active_version_trigger_permissions.sql
+supabase/migrations/202607170004_dashboard_analytics.sql
+```
+
+### Dashboard roles
+
+- **HR Admin and Super Admin:** current workforce totals, new hires, pending leave and overtime, document issues, attendance trend, workforce-status breakdown, approved leave, recent hires, and links to existing operational workflows.
+- **Managers:** current direct-report totals, aggregate team attendance, pending team leave, document-compliance issue counts, team-status breakdown, and approved team leave. The payload excludes employee notes, document files, sensitive metadata, and unrelated employees.
+- **Employees:** personal attendance trend, leave balances and requests, current schedule, document issues, unread notifications, and links to their existing self-service routes.
+
+The default reporting period is the current `Asia/Manila` month. The dashboard also supports last 7 days, last 30 days, current quarter, and custom date ranges. Custom ranges are limited to 366 calendar days.
+
+Charts use the existing React, CSS, and inline SVG stack. No third-party chart library is installed.
+
+### Phase 8 deployment verification
+
+1. Apply `supabase/migrations/202607170004_dashboard_analytics.sql` after `202607170003_fix_document_active_version_trigger_permissions.sql`.
+2. Confirm `get_hr_dashboard_analytics`, `get_manager_dashboard_analytics`, and `get_employee_dashboard_analytics` use `SECURITY DEFINER` and `set search_path = pg_catalog, public`.
+3. Confirm only `authenticated` can execute the three public analytics functions.
+4. Sign in as HR Admin or Super Admin and verify organization-wide metrics and operational links.
+5. Sign in as a manager and verify only current direct-report aggregates are returned.
+6. Sign in as an employee without direct reports and verify only personal analytics are returned.
+7. Test current month, each preset, and a valid custom date range.
+8. Confirm ranges longer than 366 days are rejected safely.
+9. Verify desktop, tablet, and mobile layouts use the existing Balanced spacing system.
+
+Run application verification:
+
+```bash
+npm ci
+npm test
+npx tsc --noEmit
+npm run build
+```
