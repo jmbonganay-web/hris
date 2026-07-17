@@ -13,10 +13,10 @@ test("app shell passes role-aware attendance navigation to the sidebar", () => {
   assert.match(sidebar, /\/admin\/attendance/);
 });
 
-test("dashboard uses production attendance queries instead of mock attendance", () => {
-  assert.match(dashboard, /getCurrentRole/);
+test("dashboard uses production analytics and attendance queries instead of mock attendance", () => {
+  assert.match(dashboard, /getDashboardAnalytics/);
   assert.match(dashboard, /getTodayAttendanceContext/);
-  assert.match(dashboard, /getAdminAttendanceSummary/);
+  assert.match(dashboard, /analytics\.kind === "hr"/);
   assert.doesNotMatch(dashboard, /import \{[^}]*attendance[^}]*\} from "@\/data\/mock"/);
 });
 

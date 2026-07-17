@@ -1,116 +1,129 @@
 import Link from "next/link";
-import { CalendarClock, ClipboardCheck, Users } from "lucide-react";
-import { AttendanceClockCard } from "@/components/attendance/attendance-clock-card";
-import { DashboardAttendanceSummary } from "@/components/attendance/dashboard-attendance-summary";
-import { ManagerDocumentCompliance } from "@/components/documents/manager-document-compliance";
-import { PageHeader } from "@/components/page-header";
-import { StatusBadge } from "@/components/status-badge";
-import { requireAttendanceEmployee } from "@/features/attendance/auth";
 import {
-  getAdminAttendanceSummary,
-  getTodayAttendanceContext,
-} from "@/features/attendance/queries";
-import { getManagerDocumentCompliance } from "@/features/documents/compliance/queries";
-import { getCurrentRole } from "@/features/employees/auth";
-import { employees, leaveRequests } from "@/data/mock";
-import { initials } from "@/lib/utils";
+  Bell,
+  CalendarClock,
+  FileWarning,
+  TimerReset,
+  UserCheck,
+  UserPlus,
+  Users,
+  UserX,
+} from "lucide-react";
+import { AttendanceClockCard } from "@/components/attendance/attendance-clock-card";
+import { DashboardActionList } from "@/components/dashboard/dashboard-action-list";
+import { DashboardBreakdownChart } from "@/components/dashboard/dashboard-breakdown-chart";
+import { DashboardMetricGrid, type DashboardMetricItem } from "@/components/dashboard/dashboard-metric-grid";
+import { DashboardPeriodFilter } from "@/components/dashboard/dashboard-period-filter";
+import { DashboardRecentPeople } from "@/components/dashboard/dashboard-recent-people";
+import { DashboardTrendChart } from "@/components/dashboard/dashboard-trend-chart";
+import { DashboardUpcomingLeave } from "@/components/dashboard/dashboard-upcoming-leave";
+import { EmployeeDashboardDetails } from "@/components/dashboard/employee-dashboard-details";
+import { PageHeader } from "@/components/page-header";
+import { requireAttendanceEmployee } from "@/features/attendance/auth";
+import { getTodayAttendanceContext } from "@/features/attendance/queries";
+import { companyDateAt } from "@/features/attendance/time";
+import { getDashboardAnalytics } from "@/features/dashboard/queries";
+import { resolveDashboardRange } from "@/features/dashboard/range";
+import type { DashboardAnalytics } from "@/features/dashboard/types";
 
-export default async function DashboardPage() {
-  const role = await getCurrentRole();
-  const isAdmin = role === "hr_admin" || role === "super_admin";
-  const attendanceContent = isAdmin
-    ? {
-        summary: await getAdminAttendanceSummary(),
-        context: null,
-        managerCompliance: [],
-      }
-    : await (async () => {
-        const { employee } = await requireAttendanceEmployee();
-        const [context, managerCompliance] = await Promise.all([
-          getTodayAttendanceContext(employee),
-          getManagerDocumentCompliance(),
-        ]);
-        return { summary: null, context, managerCompliance };
-      })();
+function scalar(value: string | string[] | undefined) {
+  return typeof value === "string" ? value : undefined;
+}
 
-  const stats = isAdmin
-    ? [
-        ["Total employees", "128", Users],
-        ["Pending leave", "7", CalendarClock],
-        ["Onboarding", "4", ClipboardCheck],
-      ] as const
-    : [
-        ["Pending leave", "7", CalendarClock],
-        ["Onboarding", "4", ClipboardCheck],
-      ] as const;
+function metricItems(analytics: DashboardAnalytics): DashboardMetricItem[] {
+  if (analytics.kind === "hr") return [
+    { label: "Active workforce", value: analytics.metrics.activeEmployees, detail: "Active, probation, and on leave", icon: Users },
+    { label: "New hires", value: analytics.metrics.newHires, detail: analytics.range.label, icon: UserPlus },
+    { label: "Pending leave", value: analytics.metrics.pendingLeave, icon: CalendarClock, tone: analytics.metrics.pendingLeave ? "warning" : "default" },
+    { label: "Pending overtime", value: analytics.metrics.pendingOvertime, icon: TimerReset, tone: analytics.metrics.pendingOvertime ? "warning" : "default" },
+    { label: "Document issues", value: analytics.metrics.documentIssues, icon: FileWarning, tone: analytics.metrics.documentIssues ? "danger" : "default" },
+  ];
+  if (analytics.kind === "manager") return [
+    { label: "Direct reports", value: analytics.directReportCount, icon: Users },
+    { label: "Present days", value: analytics.metrics.presentDays, detail: analytics.range.label, icon: UserCheck },
+    { label: "Absent days", value: analytics.metrics.absentDays, icon: UserX, tone: analytics.metrics.absentDays ? "danger" : "default" },
+    { label: "Pending team leave", value: analytics.metrics.pendingLeave, icon: CalendarClock, tone: analytics.metrics.pendingLeave ? "warning" : "default" },
+    { label: "Document issues", value: analytics.metrics.documentIssues, icon: FileWarning, tone: analytics.metrics.documentIssues ? "danger" : "default" },
+  ];
+  return [
+    { label: "Present days", value: analytics.metrics.presentDays, detail: analytics.range.label, icon: UserCheck },
+    { label: "Late days", value: analytics.metrics.lateDays, icon: TimerReset, tone: analytics.metrics.lateDays ? "warning" : "default" },
+    { label: "Pending leave", value: analytics.metrics.pendingLeave, icon: CalendarClock, tone: analytics.metrics.pendingLeave ? "warning" : "default" },
+    { label: "Document issues", value: analytics.metrics.documentIssues, icon: FileWarning, tone: analytics.metrics.documentIssues ? "danger" : "default" },
+    { label: "Unread notifications", value: analytics.metrics.unreadNotifications, icon: Bell },
+  ];
+}
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const query = await searchParams;
+  const range = resolveDashboardRange({
+    preset: scalar(query.preset),
+    start: scalar(query.start),
+    end: scalar(query.end),
+  }, companyDateAt());
+  const analytics = await getDashboardAnalytics(range);
+  const attendanceContext = analytics.kind === "hr" ? null : await (async () => {
+    const { employee } = await requireAttendanceEmployee();
+    return getTodayAttendanceContext(employee);
+  })();
+
+  const description = analytics.kind === "hr"
+    ? "Live workforce, attendance, leave, overtime, and compliance analytics."
+    : analytics.kind === "manager"
+      ? "Your attendance plus aggregate operational status for current direct reports."
+      : "Your attendance, leave, documents, schedule, and notifications in one place.";
 
   return (
     <>
       <PageHeader
         title="Dashboard"
-        description="Overview of your workforce and daily HR activity."
-        action={isAdmin ? <Link className="btn primary" href="/employees/new">+ Add employee</Link> : undefined}
+        description={description}
+        action={analytics.kind === "hr" ? <Link className="btn primary" href="/employees/new">+ Add employee</Link> : undefined}
       />
+      <DashboardPeriodFilter range={range} />
+      <DashboardMetricGrid items={metricItems(analytics)} />
 
-      <section className="grid stats">
-        {stats.map(([label, value, Icon]) => (
-          <div className="card stat" key={label}>
-            <div><div className="stat-label">{label}</div><div className="stat-value">{value}</div></div>
-            <div className="stat-icon"><Icon size={21} /></div>
-          </div>
-        ))}
-      </section>
+      {attendanceContext ? <section className="dashboard-my-attendance"><AttendanceClockCard context={attendanceContext} /></section> : null}
 
-      {attendanceContent.summary ? (
-        <DashboardAttendanceSummary summary={attendanceContent.summary} />
-      ) : attendanceContent.context ? (
-        <section className="dashboard-my-attendance">
-          <AttendanceClockCard context={attendanceContent.context} />
-        </section>
-      ) : null}
-
-      {!isAdmin && attendanceContent.managerCompliance.length > 0 && (
-        <section className="content-stack">
-          <div className="section-heading">
-            <div>
-              <h2>Direct-report document compliance</h2>
-              <p>Aggregate requirement status only. Document files and sensitive metadata remain restricted to HR.</p>
-            </div>
-          </div>
-          <ManagerDocumentCompliance rows={attendanceContent.managerCompliance} />
-        </section>
+      {analytics.kind === "hr" ? (
+        <>
+          <section className="dashboard-analytics-grid">
+            <DashboardTrendChart points={analytics.attendance.trend} />
+            <DashboardBreakdownChart items={analytics.workforceStatus} title="Workforce status" description="Current non-archived employees grouped by employment status." />
+          </section>
+          <section className="dashboard-analytics-grid">
+            <DashboardActionList items={analytics.actions} />
+            <DashboardUpcomingLeave items={analytics.upcomingLeave} />
+          </section>
+          <DashboardRecentPeople items={analytics.recentHires} />
+        </>
+      ) : analytics.kind === "manager" ? (
+        <>
+          <section className="dashboard-analytics-grid">
+            <DashboardTrendChart points={analytics.attendance.trend} title="Team attendance trend" description="Aggregate direct-report attendance only; private notes and record details remain restricted." />
+            <DashboardBreakdownChart items={analytics.teamStatus} title="Team status" description="Current direct reports grouped by employment status." />
+          </section>
+          <section className="dashboard-analytics-grid">
+            <DashboardActionList items={analytics.actions} />
+            <DashboardUpcomingLeave items={analytics.upcomingLeave} title="Team approved leave" />
+          </section>
+        </>
+      ) : (
+        <>
+          <section className="dashboard-analytics-grid">
+            <DashboardTrendChart points={analytics.attendance.trend} title="My attendance trend" description="Your calculated attendance status across the selected period." />
+            <EmployeeDashboardDetails balances={analytics.leaveBalances} schedule={analytics.schedule} />
+          </section>
+          <section className="dashboard-analytics-grid">
+            <DashboardActionList items={analytics.actions} />
+            <DashboardUpcomingLeave items={analytics.recentLeave} title="My leave requests" description="Your leave requests overlapping the selected period." />
+          </section>
+        </>
       )}
-
-      <section className="grid split">
-        <div className="card">
-          <h2 className="card-title">Leave requests</h2>
-          <div className="list">
-            {leaveRequests.map((request) => (
-              <div className="list-item" key={request.id}>
-                <div><strong>{request.employee}</strong><div className="muted">{request.type} · {request.dates}</div></div>
-                <StatusBadge value={request.status} />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="card" style={{ marginTop: 18 }}>
-        <h2 className="card-title">Recently added employees</h2>
-        <div className="table-wrap">
-          <table>
-            <thead><tr><th>Employee</th><th>Department</th><th>Role</th><th>Status</th></tr></thead>
-            <tbody>
-              {employees.slice(0, 4).map((employee) => (
-                <tr key={employee.id}>
-                  <td><div className="person"><div className="avatar">{initials(employee.name)}</div><div><strong>{employee.name}</strong><div className="muted">{employee.email}</div></div></div></td>
-                  <td>{employee.department}</td><td>{employee.role}</td><td><StatusBadge value={employee.status} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
     </>
   );
 }
