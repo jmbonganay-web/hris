@@ -21,6 +21,22 @@ const safePayrollErrors: ReadonlyArray<readonly [string, string]> = [
   ["PAYROLL_REQUEST_VERSION_CONFLICT", "This request changed. Reload and try again."],
   ["PAYROLL_GENERATION_ALREADY_RUNNING", "Payroll period generation is already running."],
   ["PAYROLL_GENERATION_FAILED", "Payroll periods could not be generated."],
+  ["PAYROLL_BASIS_INVALID", "Review the payroll basis rule and try again."],
+  ["PAYROLL_BASIS_NOT_FOUND", "The selected payroll basis rule could not be found."],
+  ["PAYROLL_BASIS_REQUIRED", "Approve a payroll basis rule before starting calculations."],
+  ["PAYROLL_BASIS_STATUS_INVALID", "This payroll basis rule cannot perform the selected action."],
+  ["PAYROLL_BASIS_FUTURE_CONFLICT", "Another approved payroll basis rule conflicts with this effective date."],
+  ["PAYROLL_CALCULATION_ALREADY_RUNNING", "Another calculation run is already active for this payroll period."],
+  ["PAYROLL_CALCULATION_MODE_INVALID", "Choose a valid payroll calculation mode."],
+  ["PAYROLL_CALCULATION_RUN_NOT_FOUND", "The payroll calculation run could not be found."],
+  ["PAYROLL_CALCULATION_IMMUTABLE", "Completed payroll calculation records cannot be changed."],
+  ["PAYROLL_PERIOD_CALCULATION_INVALID", "This payroll period is not open for calculation."],
+  ["PAYROLL_PERIOD_NOT_READY", "Resolve blocking exceptions and stale payroll entries before review."],
+  ["PAYROLL_EMPLOYEE_NOT_FOUND", "The selected employee could not be included in this payroll period."],
+  ["PAYROLL_EXCEPTION_NOT_FOUND", "The selected payroll exception could not be found or is already resolved."],
+  ["PAYROLL_EXCLUSION_NOT_FOUND", "The selected payroll exclusion could not be found or was already reversed."],
+  ["PAYROLL_BLOCKING_EXCEPTION_REQUIRES_RECALCULATION", "Correct the source data and recalculate this employee before resolving the blocker."],
+  ["PAYROLL_REASON_REQUIRED", "A reason is required for this payroll action."],
 ];
 
 export function mapPayrollError(

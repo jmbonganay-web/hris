@@ -3,6 +3,8 @@ import type {
   PayrollPeriodStatus,
   PayrollRequestStatus,
   PayrollScheduleType,
+  PayrollCalculationRunStatus,
+  PayrollEmployeeEntryStatus,
 } from "./constants.ts";
 
 const scheduleTypeLabels: Record<PayrollScheduleType, string> = {
@@ -72,3 +74,38 @@ export function formatPayrollDateTime(value: string | null) {
     timeZone: "Asia/Manila",
   }).format(date);
 }
+
+const calculationRunStatusLabels: Record<PayrollCalculationRunStatus, string> = {
+  queued: "Queued",
+  running: "Running",
+  completed: "Completed",
+  completed_with_exceptions: "Completed with exceptions",
+  failed: "Failed",
+};
+
+const employeeEntryStatusLabels: Record<PayrollEmployeeEntryStatus, string> = {
+  pending: "Pending",
+  calculated: "Calculated",
+  stale: "Needs recalculation",
+  recalculated: "Recalculated",
+  exception: "Exception",
+  excluded: "Excluded",
+};
+
+export function payrollCalculationRunStatusLabel(value: PayrollCalculationRunStatus) {
+  return calculationRunStatusLabels[value];
+}
+
+export function payrollEmployeeEntryStatusLabel(value: PayrollEmployeeEntryStatus) {
+  return employeeEntryStatusLabels[value];
+}
+
+export function formatPayrollMinutes(value: number) {
+  const minutes = Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0;
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  if (hours === 0) return `${remainder}m`;
+  if (remainder === 0) return `${hours}h`;
+  return `${hours}h ${remainder}m`;
+}
+

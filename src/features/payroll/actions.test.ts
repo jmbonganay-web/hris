@@ -8,6 +8,7 @@ const paths = [
   "../../app/(dashboard)/payroll/periods/actions.ts",
   "../../app/(dashboard)/employees/[id]/compensation/actions.ts",
   "../../app/(dashboard)/payroll/approvals/actions.ts",
+  "../../app/(dashboard)/payroll/calculation/actions.ts",
 ];
 const sources = await Promise.all(paths.map((path) => readFile(new URL(path, import.meta.url), "utf8")));
 const all = sources.join("\n");
@@ -20,15 +21,20 @@ test("payroll actions are server-only and use protected RPCs", () => {
     "create_compensation_draft", "update_compensation_draft", "submit_compensation_record",
     "create_schedule_assignment_draft", "update_schedule_assignment_draft", "submit_schedule_assignment",
     "approve_compensation_record", "reject_compensation_record", "approve_schedule_assignment", "reject_schedule_assignment",
+    "create_payroll_basis_rule", "submit_payroll_basis_rule", "approve_payroll_basis_rule", "reject_payroll_basis_rule",
+    "start_payroll_calculation_run", "recalculate_payroll_employee", "exclude_employee_from_payroll",
+    "reverse_payroll_exclusion", "resolve_payroll_exception", "ignore_blocking_payroll_exception",
   ]) assert.match(all, new RegExp(rpc));
 });
 
 test("payroll actions validate, use request IDs, and refresh protected views", () => {
   assert.match(all, /validatePayrollScheduleInput/);
   assert.match(all, /validateCompensationInput/);
+  assert.match(all, /validatePayrollBasisRuleInput/);
+  assert.match(all, /validatePayrollCalculationRunInput/);
   assert.match(all, /requirePayrollApprover/);
   assert.match(all, /crypto\.randomUUID\(\)/);
-  for (const route of ["/payroll", "/payroll/approvals", "/payroll/periods", "/dashboard", "/notifications"]) {
+  for (const route of ["/payroll", "/payroll/approvals", "/payroll/periods", "/payroll/settings/basis-rules", "/dashboard", "/notifications"]) {
     assert.match(all, new RegExp(route.replaceAll("/", "\\/")));
   }
   assert.doesNotMatch(all, /console\.(log|error|warn)/);

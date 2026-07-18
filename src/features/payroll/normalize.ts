@@ -6,6 +6,12 @@ import {
   payrollPeriodStatusValues,
   payrollRequestStatusValues,
   payrollScheduleTypeValues,
+  payrollBasisRoundingModeValues,
+  payrollCalculationRunStatusValues,
+  payrollEmployeeEntryStatusValues,
+  payrollExceptionSeverityValues,
+  payrollExceptionStatusValues,
+  payrollSourceTypeValues,
   type CompensationEventType,
   type CompensationType,
   type PayrollBusinessDayAdjustment,
@@ -13,7 +19,13 @@ import {
   type PayrollPeriodStatus,
   type PayrollRequestStatus,
   type PayrollScheduleType,
-} from "./constants";
+  type PayrollBasisRoundingMode,
+  type PayrollCalculationRunStatus,
+  type PayrollEmployeeEntryStatus,
+  type PayrollExceptionSeverity,
+  type PayrollExceptionStatus,
+  type PayrollSourceType,
+} from "./constants.ts";
 import type {
   CompensationRecord,
   EmployeeCompensationAdminDetail,
@@ -32,7 +44,18 @@ import type {
   PayrollScheduleDetail,
   PayrollScheduleSummary,
   PayrollSettings,
-} from "./types";
+  PayrollBasisRule,
+  PayrollBasisRuleList,
+  PayrollBasisPreset,
+  PayrollCalculationRun,
+  PayrollCalculationWorkspace,
+  PayrollDailyBreakdown,
+  PayrollEmployeeCalculationDetail,
+  PayrollEmployeeEntry,
+  PayrollEntryException,
+  PayrollInputSnapshot,
+  PayrollReadiness,
+} from "./types.ts";
 
 const unavailable = () => new Error("Payroll data is unavailable.");
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -353,3 +376,267 @@ export function normalizePayrollApprovalQueue(value: unknown): PayrollApprovalQu
     assignments: array(row.assignments).map(normalizeAssignmentApproval),
   };
 }
+
+const basisRoundingMode = (value: unknown): PayrollBasisRoundingMode =>
+  enumValue(value, payrollBasisRoundingModeValues);
+const calculationRunStatus = (value: unknown): PayrollCalculationRunStatus =>
+  enumValue(value, payrollCalculationRunStatusValues);
+const employeeEntryStatus = (value: unknown): PayrollEmployeeEntryStatus =>
+  enumValue(value, payrollEmployeeEntryStatusValues);
+const exceptionSeverity = (value: unknown): PayrollExceptionSeverity =>
+  enumValue(value, payrollExceptionSeverityValues);
+const exceptionStatus = (value: unknown): PayrollExceptionStatus =>
+  enumValue(value, payrollExceptionStatusValues);
+const sourceType = (value: unknown): PayrollSourceType =>
+  enumValue(value, payrollSourceTypeValues);
+
+function normalizePayrollBasisRule(value: unknown): PayrollBasisRule {
+  const row = object(value);
+  return {
+    id: text(row.id),
+    name: text(row.name),
+    annualDivisor: numberValue(row.annual_divisor),
+    standardHoursPerDay: numberValue(row.standard_hours_per_day),
+    roundingMode: basisRoundingMode(row.rounding_mode),
+    effectiveFrom: text(row.effective_from),
+    effectiveTo: nullableText(row.effective_to),
+    status: requestStatus(row.status),
+    changeReason: nullableText(row.change_reason),
+    version: numberValue(row.version, 1),
+    submittedAt: nullableText(row.submitted_at),
+    approvedAt: nullableText(row.approved_at),
+    rejectedAt: nullableText(row.rejected_at),
+    rejectionReason: nullableText(row.rejection_reason),
+    createdAt: text(row.created_at),
+    updatedAt: text(row.updated_at),
+  };
+}
+
+function normalizePayrollBasisPreset(value: unknown): PayrollBasisPreset {
+  const row = object(value);
+  return {
+    code: text(row.code),
+    name: text(row.name),
+    annualDivisor: numberValue(row.annual_divisor),
+    standardHoursPerDay: numberValue(row.standard_hours_per_day),
+  };
+}
+
+export function normalizePayrollBasisRuleList(value: unknown): PayrollBasisRuleList {
+  const row = object(value);
+  return {
+    rules: array(row.rules).map(normalizePayrollBasisRule),
+    presets: array(row.presets).map(normalizePayrollBasisPreset),
+  };
+}
+
+function normalizePayrollCalculationRun(value: unknown): PayrollCalculationRun {
+  const row = object(value);
+  return {
+    id: text(row.id),
+    payrollPeriodId: text(row.payroll_period_id),
+    mode: text(row.mode, "all"),
+    status: calculationRunStatus(row.status),
+    startedBy: nullableText(row.started_by),
+    startedAt: nullableText(row.started_at),
+    completedAt: nullableText(row.completed_at),
+    eligibleEmployeeCount: numberValue(row.eligible_employee_count),
+    calculatedCount: numberValue(row.calculated_count),
+    exceptionCount: numberValue(row.exception_count),
+    excludedCount: numberValue(row.excluded_count),
+    staleCount: numberValue(row.stale_count),
+    errorCode: nullableText(row.error_code),
+    safeErrorMessage: nullableText(row.safe_error_message),
+    createdAt: text(row.created_at),
+  };
+}
+
+function normalizePayrollReadiness(value: unknown): PayrollReadiness {
+  const row = object(value);
+  return {
+    ready: booleanValue(row.ready),
+    activeRunCount: numberValue(row.activeRunCount ?? row.active_run_count),
+    blockingExceptionCount: numberValue(row.blockingExceptionCount ?? row.blocking_exception_count),
+    staleEntryCount: numberValue(row.staleEntryCount ?? row.stale_entry_count),
+    missingEmployeeCount: numberValue(row.missingEmployeeCount ?? row.missing_employee_count),
+  };
+}
+
+export function normalizePayrollEmployeeEntry(value: unknown): PayrollEmployeeEntry {
+  const row = object(value);
+  const rawCompensationType = nullableText(row.compensation_type);
+  return {
+    id: text(row.id),
+    payrollPeriodId: text(row.payroll_period_id),
+    employeeId: text(row.employee_id),
+    calculationRunId: text(row.calculation_run_id),
+    versionNumber: numberValue(row.version_number, 1),
+    previousEntryId: nullableText(row.previous_entry_id),
+    isCurrent: booleanValue(row.is_current),
+    status: employeeEntryStatus(row.status),
+    compensationType: rawCompensationType ? compensationType(rawCompensationType) : null,
+    currencyCode: text(row.currency_code, "PHP"),
+    periodStart: text(row.period_start),
+    periodEnd: text(row.period_end),
+    employmentStart: nullableText(row.employment_start),
+    employmentEnd: nullableText(row.employment_end),
+    eligibleStart: nullableText(row.eligible_start),
+    eligibleEnd: nullableText(row.eligible_end),
+    monthlySalary: nullableNumber(row.monthly_salary),
+    hourlyRate: nullableNumber(row.hourly_rate),
+    annualDivisor: nullableNumber(row.annual_divisor),
+    standardHoursPerDay: nullableNumber(row.standard_hours_per_day),
+    standardHoursPerWeek: nullableNumber(row.standard_hours_per_week),
+    eligibleWorkdays: numberValue(row.eligible_workdays),
+    eligibleMinutes: numberValue(row.eligible_minutes),
+    payableMinutes: numberValue(row.payable_minutes),
+    approvedOvertimeMinutes: numberValue(row.approved_overtime_minutes),
+    regularEarningsRaw: numberValue(row.regular_earnings_raw),
+    regularEarningsRounded: numberValue(row.regular_earnings_rounded),
+    absenceDeductionRaw: numberValue(row.absence_deduction_raw),
+    absenceDeductionRounded: numberValue(row.absence_deduction_rounded),
+    lateDeductionRaw: numberValue(row.late_deduction_raw),
+    lateDeductionRounded: numberValue(row.late_deduction_rounded),
+    undertimeDeductionRaw: numberValue(row.undertime_deduction_raw),
+    undertimeDeductionRounded: numberValue(row.undertime_deduction_rounded),
+    overtimeInputAmount: numberValue(row.overtime_input_amount),
+    paidLeaveAmount: numberValue(row.paid_leave_amount),
+    unpaidLeaveDeduction: numberValue(row.unpaid_leave_deduction),
+    grossPayRaw: numberValue(row.gross_pay_raw),
+    grossPayRounded: numberValue(row.gross_pay_rounded),
+    isStale: booleanValue(row.is_stale),
+    staleReason: nullableText(row.stale_reason),
+    calculatedAt: nullableText(row.calculated_at),
+    createdAt: text(row.created_at),
+    employee: row.employee ? normalizeEmployeeIdentity(row.employee) : {
+      id: text(row.employee_id),
+      employeeNumber: "",
+      fullName: "",
+      workEmail: null,
+    },
+    openExceptionCount: numberValue(row.open_exception_count),
+    blockingExceptionCount: numberValue(row.blocking_exception_count),
+    activeExclusionId: nullableText(row.active_exclusion_id),
+  };
+}
+
+export function normalizePayrollCalculationWorkspace(value: unknown): PayrollCalculationWorkspace {
+  const row = object(value);
+  const period = object(row.period);
+  const summary = object(row.summary);
+  return {
+    period: {
+      id: text(period.id),
+      periodCode: text(period.period_code),
+      periodStart: text(period.period_start),
+      periodEnd: text(period.period_end),
+      cutoffDate: text(period.cutoff_date),
+      paymentDate: text(period.payment_date),
+      status: periodStatus(period.status),
+      version: numberValue(period.version, 1),
+      requiresRecalculation: booleanValue(period.requires_recalculation),
+      payrollScheduleId: text(period.payroll_schedule_id),
+      scheduleName: text(period.schedule_name),
+      scheduleCode: text(period.schedule_code),
+      currencyCode: text(period.currency_code, "PHP"),
+    },
+    latestRun: row.latest_run ? normalizePayrollCalculationRun(row.latest_run) : null,
+    runs: array(row.runs).map(normalizePayrollCalculationRun),
+    entries: array(row.entries).map(normalizePayrollEmployeeEntry),
+    readiness: normalizePayrollReadiness(row.readiness),
+    summary: {
+      entryCount: numberValue(summary.entry_count),
+      exceptionCount: numberValue(summary.exception_count),
+      staleCount: numberValue(summary.stale_count),
+      excludedCount: numberValue(summary.excluded_count),
+    },
+  };
+}
+
+function normalizePayrollDailyBreakdown(value: unknown): PayrollDailyBreakdown {
+  const row = object(value);
+  return {
+    id: text(row.id),
+    workDate: text(row.work_date),
+    employmentEligible: booleanValue(row.employment_eligible),
+    scheduledWorkday: booleanValue(row.scheduled_workday),
+    scheduledMinutes: numberValue(row.scheduled_minutes),
+    attendanceMinutes: numberValue(row.attendance_minutes),
+    paidLeaveMinutes: numberValue(row.paid_leave_minutes),
+    unpaidLeaveMinutes: numberValue(row.unpaid_leave_minutes),
+    absenceMinutes: numberValue(row.absence_minutes),
+    lateMinutes: numberValue(row.late_minutes),
+    undertimeMinutes: numberValue(row.undertime_minutes),
+    approvedOvertimeMinutes: numberValue(row.approved_overtime_minutes),
+    dailyRateRaw: numberValue(row.daily_rate_raw),
+    hourlyRateRaw: numberValue(row.hourly_rate_raw),
+    regularEarningsRaw: numberValue(row.regular_earnings_raw),
+    absenceDeductionRaw: numberValue(row.absence_deduction_raw),
+    lateDeductionRaw: numberValue(row.late_deduction_raw),
+    undertimeDeductionRaw: numberValue(row.undertime_deduction_raw),
+    unpaidLeaveDeductionRaw: numberValue(row.unpaid_leave_deduction_raw),
+    calculationDetails: isRecord(row.calculation_details) ? row.calculation_details : {},
+  };
+}
+
+function normalizePayrollInputSnapshot(value: unknown): PayrollInputSnapshot {
+  const row = object(value);
+  return {
+    id: text(row.id),
+    sourceType: sourceType(row.source_type),
+    sourceTable: text(row.source_table),
+    sourceRecordId: nullableText(row.source_record_id),
+    sourceUpdatedAt: nullableText(row.source_updated_at),
+    effectiveDate: nullableText(row.effective_date),
+    snapshotHash: text(row.snapshot_hash),
+    snapshotData: isRecord(row.snapshot_data) ? row.snapshot_data : {},
+    createdAt: text(row.created_at),
+  };
+}
+
+function normalizePayrollEntryException(value: unknown): PayrollEntryException {
+  const row = object(value);
+  const rawSourceType = nullableText(row.source_type);
+  return {
+    id: text(row.id),
+    payrollPeriodId: text(row.payroll_period_id),
+    employeeId: text(row.employee_id),
+    employee: row.employee ? normalizeEmployeeIdentity(row.employee) : {
+      id: text(row.employee_id),
+      employeeNumber: "",
+      fullName: "",
+      workEmail: null,
+    },
+    calculationRunId: nullableText(row.calculation_run_id),
+    payrollEmployeeEntryId: nullableText(row.payroll_employee_entry_id),
+    exceptionCode: text(row.exception_code),
+    severity: exceptionSeverity(row.severity),
+    message: text(row.message),
+    sourceType: rawSourceType ? sourceType(rawSourceType) : null,
+    sourceRecordId: nullableText(row.source_record_id),
+    status: exceptionStatus(row.status),
+    resolutionNote: nullableText(row.resolution_note),
+    resolvedAt: nullableText(row.resolved_at),
+    createdAt: text(row.created_at),
+  };
+}
+
+export function normalizePayrollExceptionList(value: unknown): PayrollEntryException[] {
+  const row = object(value);
+  return array(row.items).map(normalizePayrollEntryException);
+}
+
+export function normalizePayrollEmployeeCalculationDetail(value: unknown): PayrollEmployeeCalculationDetail {
+  const row = object(value);
+  const employee = normalizeEmployeeIdentity(row.employee);
+  const attachEmployee = (entry: PayrollEmployeeEntry): PayrollEmployeeEntry => ({ ...entry, employee });
+  return {
+    employee,
+    currentEntry: row.current_entry ? attachEmployee(normalizePayrollEmployeeEntry(row.current_entry)) : null,
+    versions: array(row.versions).map(normalizePayrollEmployeeEntry).map(attachEmployee),
+    dailyBreakdowns: array(row.daily_breakdowns).map(normalizePayrollDailyBreakdown),
+    snapshots: array(row.snapshots).map(normalizePayrollInputSnapshot),
+    exceptions: array(row.exceptions).map((item) => ({ ...normalizePayrollEntryException({ ...object(item), employee }), employee })),
+  };
+}
+

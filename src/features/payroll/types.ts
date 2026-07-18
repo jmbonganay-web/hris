@@ -6,6 +6,12 @@ import type {
   PayrollPeriodStatus,
   PayrollRequestStatus,
   PayrollScheduleType,
+  PayrollBasisRoundingMode,
+  PayrollCalculationRunStatus,
+  PayrollEmployeeEntryStatus,
+  PayrollExceptionSeverity,
+  PayrollExceptionStatus,
+  PayrollSourceType,
 } from "./constants.ts";
 
 export type PayrollActionState = {
@@ -267,3 +273,222 @@ export type PayrollOverview = {
   ownCompensation: OwnCompensationDetail | null;
   missingEmployees: EmployeeIdentity[];
 };
+
+export type PayrollBasisRuleInput = {
+  name: string;
+  annualDivisor: number;
+  standardHoursPerDay: number;
+  roundingMode: PayrollBasisRoundingMode;
+  effectiveFrom: string;
+  changeReason: string;
+};
+
+export type PayrollBasisRule = {
+  id: string;
+  name: string;
+  annualDivisor: number;
+  standardHoursPerDay: number;
+  roundingMode: PayrollBasisRoundingMode;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  status: PayrollRequestStatus;
+  changeReason: string | null;
+  version: number;
+  submittedAt: string | null;
+  approvedAt: string | null;
+  rejectedAt: string | null;
+  rejectionReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PayrollBasisPreset = {
+  code: string;
+  name: string;
+  annualDivisor: number;
+  standardHoursPerDay: number;
+};
+
+export type PayrollBasisRuleList = {
+  rules: PayrollBasisRule[];
+  presets: PayrollBasisPreset[];
+};
+
+export type PayrollCalculationRun = {
+  id: string;
+  payrollPeriodId: string;
+  mode: string;
+  status: PayrollCalculationRunStatus;
+  startedBy: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  eligibleEmployeeCount: number;
+  calculatedCount: number;
+  exceptionCount: number;
+  excludedCount: number;
+  staleCount: number;
+  errorCode: string | null;
+  safeErrorMessage: string | null;
+  createdAt: string;
+};
+
+export type PayrollCalculationPeriod = {
+  id: string;
+  periodCode: string;
+  periodStart: string;
+  periodEnd: string;
+  cutoffDate: string;
+  paymentDate: string;
+  status: PayrollPeriodStatus;
+  version: number;
+  requiresRecalculation: boolean;
+  payrollScheduleId: string;
+  scheduleName: string;
+  scheduleCode: string;
+  currencyCode: string;
+};
+
+export type PayrollReadiness = {
+  ready: boolean;
+  activeRunCount: number;
+  blockingExceptionCount: number;
+  staleEntryCount: number;
+  missingEmployeeCount: number;
+};
+
+export type PayrollEmployeeEntry = {
+  id: string;
+  payrollPeriodId: string;
+  employeeId: string;
+  calculationRunId: string;
+  versionNumber: number;
+  previousEntryId: string | null;
+  isCurrent: boolean;
+  status: PayrollEmployeeEntryStatus;
+  compensationType: CompensationType | null;
+  currencyCode: string;
+  periodStart: string;
+  periodEnd: string;
+  employmentStart: string | null;
+  employmentEnd: string | null;
+  eligibleStart: string | null;
+  eligibleEnd: string | null;
+  monthlySalary: number | null;
+  hourlyRate: number | null;
+  annualDivisor: number | null;
+  standardHoursPerDay: number | null;
+  standardHoursPerWeek: number | null;
+  eligibleWorkdays: number;
+  eligibleMinutes: number;
+  payableMinutes: number;
+  approvedOvertimeMinutes: number;
+  regularEarningsRaw: number;
+  regularEarningsRounded: number;
+  absenceDeductionRaw: number;
+  absenceDeductionRounded: number;
+  lateDeductionRaw: number;
+  lateDeductionRounded: number;
+  undertimeDeductionRaw: number;
+  undertimeDeductionRounded: number;
+  overtimeInputAmount: number;
+  paidLeaveAmount: number;
+  unpaidLeaveDeduction: number;
+  grossPayRaw: number;
+  grossPayRounded: number;
+  isStale: boolean;
+  staleReason: string | null;
+  calculatedAt: string | null;
+  createdAt: string;
+  employee: EmployeeIdentity;
+  openExceptionCount: number;
+  blockingExceptionCount: number;
+  activeExclusionId: string | null;
+};
+
+export type PayrollCalculationWorkspace = {
+  period: PayrollCalculationPeriod;
+  latestRun: PayrollCalculationRun | null;
+  runs: PayrollCalculationRun[];
+  entries: PayrollEmployeeEntry[];
+  readiness: PayrollReadiness;
+  summary: {
+    entryCount: number;
+    exceptionCount: number;
+    staleCount: number;
+    excludedCount: number;
+  };
+};
+
+export type PayrollDailyBreakdown = {
+  id: string;
+  workDate: string;
+  employmentEligible: boolean;
+  scheduledWorkday: boolean;
+  scheduledMinutes: number;
+  attendanceMinutes: number;
+  paidLeaveMinutes: number;
+  unpaidLeaveMinutes: number;
+  absenceMinutes: number;
+  lateMinutes: number;
+  undertimeMinutes: number;
+  approvedOvertimeMinutes: number;
+  dailyRateRaw: number;
+  hourlyRateRaw: number;
+  regularEarningsRaw: number;
+  absenceDeductionRaw: number;
+  lateDeductionRaw: number;
+  undertimeDeductionRaw: number;
+  unpaidLeaveDeductionRaw: number;
+  calculationDetails: Record<string, unknown>;
+};
+
+export type PayrollInputSnapshot = {
+  id: string;
+  sourceType: PayrollSourceType;
+  sourceTable: string;
+  sourceRecordId: string | null;
+  sourceUpdatedAt: string | null;
+  effectiveDate: string | null;
+  snapshotHash: string;
+  snapshotData: Record<string, unknown>;
+  createdAt: string;
+};
+
+export type PayrollEntryException = {
+  id: string;
+  payrollPeriodId: string;
+  employeeId: string;
+  employee: EmployeeIdentity;
+  calculationRunId: string | null;
+  payrollEmployeeEntryId: string | null;
+  exceptionCode: string;
+  severity: PayrollExceptionSeverity;
+  message: string;
+  sourceType: PayrollSourceType | null;
+  sourceRecordId: string | null;
+  status: PayrollExceptionStatus;
+  resolutionNote: string | null;
+  resolvedAt: string | null;
+  createdAt: string;
+};
+
+export type PayrollEmployeeCalculationDetail = {
+  employee: EmployeeIdentity;
+  currentEntry: PayrollEmployeeEntry | null;
+  versions: PayrollEmployeeEntry[];
+  dailyBreakdowns: PayrollDailyBreakdown[];
+  snapshots: PayrollInputSnapshot[];
+  exceptions: PayrollEntryException[];
+};
+
+export type PayrollCalculationRunInput = {
+  payrollPeriodId: string;
+  mode: "all" | "uncalculated" | "selected" | "recalculate";
+  employeeIds: string[];
+};
+
+export type PayrollReasonActionInput = {
+  id: string;
+  reason: string;
+};
+

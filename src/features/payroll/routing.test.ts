@@ -14,6 +14,10 @@ const routes = {
   periods: await source("../../app/(dashboard)/payroll/periods/page.tsx"),
   periodDetail: await source("../../app/(dashboard)/payroll/periods/[periodId]/page.tsx"),
   approvals: await source("../../app/(dashboard)/payroll/approvals/page.tsx"),
+  calculationWorkspace: await source("../../app/(dashboard)/payroll/periods/[periodId]/workspace/page.tsx"),
+  calculationEmployee: await source("../../app/(dashboard)/payroll/periods/[periodId]/employees/[employeeId]/page.tsx"),
+  calculationExceptions: await source("../../app/(dashboard)/payroll/periods/[periodId]/exceptions/page.tsx"),
+  basisRules: await source("../../app/(dashboard)/payroll/settings/basis-rules/page.tsx"),
   employeeCompensation: await source("../../app/(dashboard)/employees/[id]/compensation/page.tsx"),
   employeeCompensationNew: await source("../../app/(dashboard)/employees/[id]/compensation/new/page.tsx"),
   employeeCompensationEdit: await source("../../app/(dashboard)/employees/[id]/compensation/[recordId]/page.tsx"),
@@ -30,10 +34,14 @@ function assertGuardBeforeQuery(text: string, guard: string, query: string) {
 
 test("payroll routes authorize before protected queries", () => {
   assertGuardBeforeQuery(routes.overview, "requirePayrollViewer()", "getPayrollOverview()");
-  for (const text of [routes.schedules, routes.scheduleNew, routes.scheduleDetail, routes.periods, routes.periodDetail]) {
+  for (const text of [routes.schedules, routes.scheduleNew, routes.scheduleDetail, routes.periods, routes.periodDetail, routes.calculationWorkspace, routes.calculationEmployee, routes.calculationExceptions, routes.basisRules]) {
     assert.match(text, /requirePayrollAdministrator\(\)/);
   }
   assertGuardBeforeQuery(routes.approvals, "requirePayrollApprover()", "listPayrollApprovals()");
+  assertGuardBeforeQuery(routes.calculationWorkspace, "requirePayrollAdministrator()", "getPayrollCalculationWorkspace(periodId)");
+  assertGuardBeforeQuery(routes.calculationEmployee, "requirePayrollAdministrator()", "getPayrollEmployeeCalculationDetail(periodId, employeeId)");
+  assertGuardBeforeQuery(routes.calculationExceptions, "requirePayrollAdministrator()", "listPayrollEntryExceptions(periodId)");
+  assertGuardBeforeQuery(routes.basisRules, "requirePayrollAdministrator()", "listPayrollBasisRules()");
   for (const text of [routes.employeeCompensation, routes.employeeCompensationNew, routes.employeeCompensationEdit]) {
     assertGuardBeforeQuery(text, "requireEmployeeProfileManager(id)", "getEmployeeCompensationAdmin(id)");
   }
