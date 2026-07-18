@@ -2468,3 +2468,212 @@ a.settings-card:hover { border-color: #bfdbfe; transform: translateY(-1px); box-
     min-width: 760px;
   }
 }
+
+/* Phase 10B.1 payroll calculation foundation */
+.payroll-calculation-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-card);
+}
+
+.metric-card {
+  display: grid;
+  gap: var(--space-compact);
+  min-width: 0;
+}
+
+.metric-card > span,
+.payroll-detail-totals span,
+.payroll-detail-totals small {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.metric-card > strong {
+  font-size: 30px;
+  line-height: 1;
+}
+
+.payroll-run-summary,
+.payroll-setup-warning {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-card);
+}
+
+.payroll-run-summary h2,
+.payroll-run-summary p,
+.payroll-setup-warning h2,
+.payroll-setup-warning p {
+  margin: 0;
+}
+
+.payroll-workspace-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-card);
+  align-items: start;
+}
+
+.payroll-run-form,
+.payroll-readiness-card {
+  align-content: start;
+}
+
+.payroll-readiness-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-related);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.payroll-readiness-list li {
+  padding: var(--space-related);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.compact-field {
+  width: auto;
+  min-width: 180px;
+}
+
+.payroll-calculation-table table {
+  min-width: 1180px;
+}
+
+.table-actions,
+.inline-action-form {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-compact);
+  flex-wrap: wrap;
+}
+
+.inline-action-form {
+  flex-direction: column;
+}
+
+.payroll-inline-details {
+  min-width: 150px;
+}
+
+.payroll-inline-details > summary {
+  cursor: pointer;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.payroll-inline-details[open] {
+  padding: var(--space-related);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.payroll-detail-totals {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-related);
+}
+
+.payroll-detail-totals > div {
+  display: grid;
+  gap: var(--space-compact);
+  padding: var(--space-related);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  min-width: 0;
+}
+
+.payroll-detail-totals strong {
+  overflow-wrap: anywhere;
+}
+
+.payroll-exception-card-grid,
+.payroll-basis-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-card);
+}
+
+.payroll-exception-action,
+.payroll-basis-actions {
+  padding-top: var(--space-related);
+  border-top: 1px solid var(--border);
+}
+
+.payroll-basis-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-related);
+  align-items: start;
+}
+
+.payroll-filter-bar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(160px, 240px));
+  gap: var(--space-related);
+}
+
+.payroll-filter-bar label {
+  display: grid;
+  gap: var(--space-compact);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.payroll-filter-bar .field {
+  font-weight: 400;
+}
+
+@media (max-width: 1180px) {
+  .payroll-calculation-summary-grid,
+  .payroll-detail-totals {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .payroll-workspace-controls,
+  .payroll-exception-card-grid,
+  .payroll-basis-grid,
+  .payroll-basis-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .payroll-calculation-summary-grid,
+  .payroll-detail-totals,
+  .payroll-readiness-list,
+  .payroll-filter-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .payroll-run-summary,
+  .payroll-setup-warning,
+  .payroll-workspace-controls .form-actions,
+  .payroll-basis-actions .form-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .compact-field {
+    width: 100%;
+  }
+
+  .payroll-run-summary .btn,
+  .payroll-workspace-controls .btn,
+  .payroll-basis-actions .btn,
+  .payroll-exception-action .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

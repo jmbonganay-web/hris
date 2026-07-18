@@ -11,10 +11,13 @@ const periodActions = await read("../../components/payroll/payroll-period-action
 const selfSummary = await read("../../components/payroll/compensation-summary.tsx");
 const compensationForm = await read("../../components/payroll/compensation-form.tsx");
 const approvalCard = await read("../../components/payroll/payroll-approval-card.tsx");
+const calculationWorkspace = await read("../../components/payroll/payroll-calculation-workspace.tsx");
+const basisRules = await read("../../components/payroll/payroll-basis-rule-list.tsx");
 
 test("navigation exposes own compensation to everyone and payroll administration to HR", () => {
   assert.match(sidebar, /\["\/me\/compensation", "My Compensation"/);
   assert.match(sidebar, /isHr[\s\S]*\["\/payroll", "Payroll"/);
+  assert.match(sidebar, /\["\/payroll\/settings\/basis-rules", "Payroll Basis"/);
   assert.match(sidebar, /WalletCards/);
 });
 
@@ -59,3 +62,14 @@ test("approval cards require reasons and exceptional confirmations without priva
   assert.match(approvalCard, /confirmMidPeriod/);
   assert.doesNotMatch(approvalCard, /type="hidden" name="(changeReason|overrideReason|rejectionReason)"/);
 });
+
+test("payroll calculation UI exposes controlled runs, readiness, and basis setup", () => {
+  for (const label of ["Start calculation", "Submit for review", "Needs recalculation", "Blocking exception", "Calculation runs"]) {
+    assert.match(calculationWorkspace, new RegExp(label));
+  }
+  for (const preset of ["261-day basis", "310-day basis", "313-day basis", "365-day basis"]) {
+    assert.match(basisRules, new RegExp(preset));
+  }
+  assert.match(calculationWorkspace, /reversePayrollExclusionAction/);
+});
+

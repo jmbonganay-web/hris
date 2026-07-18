@@ -1171,3 +1171,34 @@ Phase 10A does not include:
 - Payroll register or accounting exports
 
 These calculation and payroll-output capabilities belong to Phases 10B and 10C.
+
+## Phase 10B.1 payroll calculation foundation
+
+Phase 10B.1 adds a database-native payroll calculation foundation on top of Phase 10A. It provides effective-dated payroll-basis rules, controlled calculation runs, versioned employee results, immutable source snapshots, daily breakdowns, exceptions, exclusions, stale detection, recalculation, and period-readiness enforcement.
+
+Apply this forward-only migration after Phase 10A:
+
+```text
+supabase/migrations/202607190001_payroll_calculation_foundation.sql
+```
+
+Then run:
+
+```text
+phase10b1_post_migration_verification.sql
+```
+
+The migration deliberately creates **no active payroll basis rule** and performs **no automatic employee calculation**. A Super Admin must create or review a `261`, `310`, `313`, `365`, or custom basis rule and approve it before HR can calculate an open payroll period.
+
+### Phase 10B.1 routes
+
+| Route | Purpose | Access |
+|---|---|---|
+| `/payroll/settings/basis-rules` | Create, submit, approve, reject, and review effective-dated payroll-basis rules | HR Admin; approval actions require Super Admin |
+| `/payroll/periods/[periodId]/workspace` | Start controlled calculation runs, filter results, recalculate stale entries, exclude employees, and submit a ready period for review | HR Admin, Super Admin |
+| `/payroll/periods/[periodId]/employees/[employeeId]` | Review employee totals, daily calculation rows, source snapshots, exceptions, and immutable versions | HR Admin, Super Admin |
+| `/payroll/periods/[periodId]/exceptions` | Resolve warnings or review blocking calculation exceptions | HR Admin, Super Admin; blocker override requires Super Admin |
+
+### Calculation boundaries
+
+Phase 10B.1 calculates monthly and hourly base pay, attendance deductions, paid and unpaid leave effects, proration, and approved overtime input minutes. It does not yet calculate overtime premiums, rest-day or holiday premiums, night differential, allowances, recurring deductions, Philippine statutory contributions, withholding tax, 13th-month accrual, payslips, or exports. Those remain in Phases 10B.2–10C.

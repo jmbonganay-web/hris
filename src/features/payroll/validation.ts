@@ -2,6 +2,7 @@ import {
   compensationTypeValues,
   payrollPeriodStatusValues,
   payrollScheduleTypeValues,
+  payrollBasisRoundingModeValues,
   type CompensationType,
   type PayrollPeriodStatus,
   type PayrollScheduleType,
@@ -12,6 +13,9 @@ import type {
   PayrollPeriodFilters,
   PayrollScheduleInput,
   ScheduleAssignmentInput,
+  PayrollBasisRuleInput,
+  PayrollCalculationRunInput,
+  PayrollReasonActionInput,
 } from "./types.ts";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -213,3 +217,106 @@ export function validatePayrollPeriodFilters(input: UnknownRecord): PayrollPerio
     page: Number.isInteger(page) && page > 0 ? page : 1,
   };
 }
+
+export function validatePayrollBasisRuleInput(
+  input: UnknownRecord,
+): ValidationResult<PayrollBasisRuleInput> {
+  const name = text(input.name);
+  const annualDivisor = numberValue(input.annualDivisor ?? input.annual_divisor);
+  const standardHoursPerDay = numberValue(
+    input.standardHoursPerDay ?? input.standard_hours_per_day,
+  );
+  const roundingMode = text(
+    input.roundingMode ?? input.rounding_mode,
+  ) as PayrollBasisRuleInput["roundingMode"];
+  const effectiveFrom = text(input.effectiveFrom ?? input.effective_from);
+  const changeReason = text(input.changeReason ?? input.change_reason);
+  const fieldErrors: Record<string, string> = {};
+
+  if (name.length < 2 || name.length > 120) {
+    fieldErrors.name = "Name must be between 2 and 120 characters.";
+  }
+  if (
+    annualDivisor === null ||
+    !Number.isFinite(annualDivisor) ||
+    annualDivisor <= 0 ||
+    annualDivisor > 1000
+  ) {
+    fieldErrors.annual_divisor = "Annual divisor must be greater than zero and no more than 1,000.";
+  }
+  if (
+    standardHoursPerDay === null ||
+    !Number.isFinite(standardHoursPerDay) ||
+    standardHoursPerDay <= 0 ||
+    standardHoursPerDay > 24
+  ) {
+    fieldErrors.standard_hours_per_day = "Daily hours must be greater than zero and no more than 24.";
+  }
+  if (!payrollBasisRoundingModeValues.includes(roundingMode)) {
+    fieldErrors.rounding_mode = "Choose a valid rounding method.";
+  }
+  if (!datePattern.test(effectiveFrom)) {
+    fieldErrors.effective_from = "Effective date is required.";
+  }
+  if (!changeReason || changeReason.length > 1000) {
+    fieldErrors.change_reason = "Reason is required and must be 1,000 characters or fewer.";
+  }
+
+  if (Object.keys(fieldErrors).length) return invalid(fieldErrors);
+  return {
+    data: {
+      name,
+      annualDivisor: annualDivisor as number,
+      standardHoursPerDay: standardHoursPerDay as number,
+      roundingMode,
+      effectiveFrom,
+      changeReason,
+    },
+  };
+}
+
+export function validatePayrollCalculationRunInput(
+  input: UnknownRecord,
+): ValidationResult<PayrollCalculationRunInput> {
+  const payrollPeriodId = text(input.payrollPeriodId ?? input.payroll_period_id);
+  const mode = text(input.mode || "all") as PayrollCalculationRunInput["mode"];
+  const rawEmployeeIds = input.employeeIds ?? input.employee_ids;
+  const employeeIds = Array.isArray(rawEmployeeIds)
+    ? rawEmployeeIds.map(text).filter(Boolean)
+    : text(rawEmployeeIds)
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean);
+  const fieldErrors: Record<string, string> = {};
+
+  if (!uuidPattern.test(payrollPeriodId)) {
+    fieldErrors.payroll_period_id = "Choose a valid payroll period.";
+  }
+  if (!["all", "uncalculated", "selected", "recalculate"].includes(mode)) {
+    fieldErrors.mode = "Choose a valid calculation mode.";
+  }
+  if (["selected", "recalculate"].includes(mode) && employeeIds.length === 0) {
+    fieldErrors.employee_ids = "Select at least one employee.";
+  }
+  if (employeeIds.some((employeeId) => !uuidPattern.test(employeeId))) {
+    fieldErrors.employee_ids = "One or more selected employees are invalid.";
+  }
+
+  if (Object.keys(fieldErrors).length) return invalid(fieldErrors);
+  return { data: { payrollPeriodId, mode, employeeIds } };
+}
+
+export function validatePayrollReasonActionInput(
+  input: UnknownRecord,
+): ValidationResult<PayrollReasonActionInput> {
+  const id = text(input.id);
+  const reason = text(input.reason);
+  const fieldErrors: Record<string, string> = {};
+  if (!uuidPattern.test(id)) fieldErrors.id = "The selected payroll record is invalid.";
+  if (!reason || reason.length > 1000) {
+    fieldErrors.reason = "Reason is required and must be 1,000 characters or fewer.";
+  }
+  if (Object.keys(fieldErrors).length) return invalid(fieldErrors);
+  return { data: { id, reason } };
+}
+

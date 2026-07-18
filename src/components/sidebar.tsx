@@ -93,7 +93,12 @@ export function Sidebar({
 
   const payrollItems: readonly NavigationItem[] = [
     ["/me/compensation", "My Compensation", WalletCards],
-    ...(isHr ? [["/payroll", "Payroll", WalletCards] as const] : []),
+    ...(isHr
+      ? [
+          ["/payroll", "Payroll", WalletCards] as const,
+          ["/payroll/settings/basis-rules", "Payroll Basis", Settings] as const,
+        ]
+      : []),
   ];
 
   const hrOnlyItems: readonly NavigationItem[] = isHr
