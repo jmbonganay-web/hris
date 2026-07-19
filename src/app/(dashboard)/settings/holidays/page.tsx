@@ -40,7 +40,13 @@ export default async function HolidaysPage() {
                   </span>
                   <h2>{version?.holiday_name ?? "Unavailable holiday"}</h2>
                   <p className="muted">
-                    {version ? `${formatCompanyDate(version.holiday_date)} · ${holidayTypeLabel(version.holiday_type)}` : "No active version"}
+                    {version
+                      ? `${formatCompanyDate(version.holiday_date)} · ${
+                          version.holiday_type === "regular_holiday" && version.holiday_count === 2
+                            ? "Double regular holiday"
+                            : holidayTypeLabel(version.holiday_type)
+                        }`
+                      : "No active version"}
                   </p>
                 </div>
                 <Link className="btn" href={`/settings/holidays/${group.id}`}>View history</Link>

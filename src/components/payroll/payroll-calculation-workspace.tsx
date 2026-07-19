@@ -9,6 +9,7 @@ import {
   startPayrollCalculationAction,
 } from "@/app/(dashboard)/payroll/calculation/actions";
 import { transitionPayrollPeriodAction } from "@/app/(dashboard)/payroll/periods/actions";
+import { calculatePayrollPremiumsAction } from "@/app/(dashboard)/payroll/premiums/actions";
 import {
   compensationTypeLabel,
   formatPayrollDateTime,
@@ -53,6 +54,35 @@ function StartCalculationForm({ workspace }: { workspace: PayrollCalculationWork
   </form>;
 }
 
+
+function CalculatePremiumsForm({ workspace }: { workspace: PayrollCalculationWorkspace }) {
+  const [state, action, pending] = usePayrollAction(calculatePayrollPremiumsAction);
+  const activeRun = workspace.latestRun?.status === "queued" || workspace.latestRun?.status === "running";
+  const disabled = !["open", "under_review"].includes(workspace.period.status) || activeRun;
+  return <form className="card content-stack payroll-run-form" action={action}>
+    <div className="section-heading"><div><h2>Calculate premiums</h2><p>Creates premium versions for clean base entries that have not yet been processed.</p></div></div>
+    <input type="hidden" name="payroll_period_id" value={workspace.period.id}/>
+    <input type="hidden" name="mode" value="uncalculated"/>
+    <Feedback state={state}/><button className="btn primary" disabled={disabled || pending}>{pending ? "Calculating premiums…" : "Calculate premiums"}</button>
+  </form>;
+}
+
+function RecalculateAffectedPremiumsForm({ workspace }: { workspace: PayrollCalculationWorkspace }) {
+  const [state, action, pending] = usePayrollAction(calculatePayrollPremiumsAction);
+  const activeRun = workspace.latestRun?.status === "queued" || workspace.latestRun?.status === "running";
+  const affectedEmployeeIds = workspace.entries
+    .filter((entry) => entry.isStale || entry.status === "stale")
+    .map((entry) => entry.employeeId);
+  const disabled = !["open", "under_review"].includes(workspace.period.status) || activeRun || affectedEmployeeIds.length === 0;
+  return <form className="card content-stack payroll-run-form" action={action}>
+    <div className="section-heading"><div><h2>Recalculate affected entries</h2><p>Refreshes base payroll first, then creates new immutable premium versions for stale employees.</p></div><span className="badge warning">{affectedEmployeeIds.length}</span></div>
+    <input type="hidden" name="payroll_period_id" value={workspace.period.id}/>
+    <input type="hidden" name="mode" value="recalculate"/>
+    {affectedEmployeeIds.map((employeeId) => <input key={employeeId} type="hidden" name="employeeIds" value={employeeId}/>)}
+    <Feedback state={state}/><button className="btn" disabled={disabled || pending}>{pending ? "Recalculating affected entries…" : "Recalculate affected entries"}</button>
+  </form>;
+}
+
 function RecalculateForm({ periodId, employeeId }: { periodId: string; employeeId: string }) {
   const [state, action, pending] = usePayrollAction(recalculatePayrollEmployeeAction);
   return <form className="inline-action-form" action={action}>
@@ -86,7 +116,7 @@ function SubmitReviewForm({ workspace }: { workspace: PayrollCalculationWorkspac
   return <form className="card content-stack payroll-readiness-card" action={action}>
     <div className="section-heading"><div><h2>Submit for review</h2><p>{workspace.readiness.ready ? "All calculated entries satisfy the database readiness checks." : "Resolve blockers, missing employees, and stale entries first."}</p></div><span className={`badge ${workspace.readiness.ready ? "success" : "warning"}`}>{workspace.readiness.ready ? "Ready" : "Not ready"}</span></div>
     <input type="hidden" name="periodId" value={workspace.period.id}/><input type="hidden" name="expectedVersion" value={workspace.period.version}/><input type="hidden" name="toStatus" value="under_review"/>
-    <ul className="payroll-readiness-list"><li>Active runs: {workspace.readiness.activeRunCount}</li><li>Blocking exception: {workspace.readiness.blockingExceptionCount}</li><li>Needs recalculation: {workspace.readiness.staleEntryCount}</li><li>Missing employees: {workspace.readiness.missingEmployeeCount}</li></ul>
+    <ul className="payroll-readiness-list"><li>Active runs: {workspace.readiness.activeRunCount}</li><li>Blocking exception: {workspace.readiness.blockingExceptionCount}</li><li>Needs recalculation: {workspace.readiness.staleEntryCount}</li><li>Missing employees: {workspace.readiness.missingEmployeeCount}</li><li>Missing premium calculations: {workspace.readiness.missingPremiumEntryCount}</li></ul>
     <Feedback state={state}/><button className="btn primary" disabled={!workspace.readiness.ready || pending || workspace.period.status !== "open"}>{pending ? "Submitting…" : "Submit for review"}</button>
   </form>;
 }
@@ -106,6 +136,7 @@ export function PayrollCalculationWorkspaceView({ workspace }: { workspace: Payr
     if (filter === "exception") return entry.openExceptionCount > 0 || entry.status === "exception";
     if (filter === "excluded") return entry.status === "excluded";
     if (filter === "monthly" || filter === "hourly") return entry.compensationType === filter;
+    if (filter === "premium_pending") return !entry.premiumCalculatedAt || entry.isStale;
     return true;
   }), [filter, workspace.entries]);
 
@@ -116,17 +147,22 @@ export function PayrollCalculationWorkspaceView({ workspace }: { workspace: Payr
       <article className="card metric-card"><span>Exceptions</span><strong>{workspace.summary.exceptionCount}</strong></article>
       <article className="card metric-card"><span>Needs recalculation</span><strong>{workspace.summary.staleCount}</strong></article>
       <article className="card metric-card"><span>Excluded</span><strong>{workspace.summary.excludedCount}</strong></article>
+      <article className="card metric-card"><span>Premium earnings</span><strong>{formatPayrollMoney(workspace.summary.premiumEarnings, workspace.period.currencyCode)}</strong></article>
+      <article className="card metric-card"><span>Night differential</span><strong>{formatPayrollMoney(workspace.summary.nightDifferential, workspace.period.currencyCode)}</strong></article>
+      <article className="card metric-card"><span>Gross pay (revised)</span><strong>{formatPayrollMoney(workspace.summary.revisedGrossPay, workspace.period.currencyCode)}</strong></article>
+      <article className="card metric-card"><span>Premium exceptions</span><strong>{workspace.summary.premiumExceptionCount}</strong></article>
+      <article className="card metric-card"><span>Awaiting premiums</span><strong>{workspace.summary.premiumPendingCount}</strong></article>
     </section>
 
     {workspace.latestRun ? <section className="card payroll-run-summary"><div><span className="muted">Latest run</span><h2>{payrollCalculationRunStatusLabel(workspace.latestRun.status)}</h2><p>{formatPayrollDateTime(workspace.latestRun.startedAt)} · {workspace.latestRun.calculatedCount} calculated · {workspace.latestRun.exceptionCount} exceptions</p></div><span className={`badge ${workspace.latestRun.status === "failed" ? "danger" : workspace.latestRun.status === "completed" ? "success" : "warning"}`}>{payrollCalculationRunStatusLabel(workspace.latestRun.status)}</span></section> : null}
 
-    <div className="payroll-workspace-controls"><StartCalculationForm workspace={workspace}/><SubmitReviewForm workspace={workspace}/></div>
+    <div className="payroll-workspace-controls"><StartCalculationForm workspace={workspace}/><CalculatePremiumsForm workspace={workspace}/><RecalculateAffectedPremiumsForm workspace={workspace}/><SubmitReviewForm workspace={workspace}/></div>
 
     <section className="content-stack">
-      <div className="section-heading"><div><h2>Employee calculations</h2><p>Current immutable result version for every processed employee.</p></div><div className="header-actions"><Link className="btn" href={`/payroll/periods/${workspace.period.id}/exceptions`}>Review exceptions</Link><select className="field compact-field" aria-label="Filter payroll entries" value={filter} onChange={(event) => setFilter(event.target.value)}><option value="all">All</option><option value="calculated">Calculated</option><option value="stale">Needs recalculation</option><option value="exception">Exception</option><option value="excluded">Excluded</option><option value="monthly">Monthly</option><option value="hourly">Hourly</option></select></div></div>
-      {entries.length ? <div className="card table-wrap payroll-calculation-table"><table><thead><tr><th>Employee</th><th>Type</th><th>Status</th><th>Eligible</th><th>Regular earnings</th><th>Deductions</th><th>Overtime input</th><th>Gross pay</th><th>Actions</th></tr></thead><tbody>{entries.map((entry) => {
+      <div className="section-heading"><div><h2>Employee calculations</h2><p>Current immutable result version for every processed employee.</p></div><div className="header-actions"><Link className="btn" href={`/payroll/periods/${workspace.period.id}/exceptions`}>Review exceptions</Link><select className="field compact-field" aria-label="Filter payroll entries" value={filter} onChange={(event) => setFilter(event.target.value)}><option value="all">All</option><option value="calculated">Calculated</option><option value="stale">Needs recalculation</option><option value="exception">Exception</option><option value="excluded">Excluded</option><option value="monthly">Monthly</option><option value="hourly">Hourly</option><option value="premium_pending">Premium pending</option></select></div></div>
+      {entries.length ? <div className="card table-wrap payroll-calculation-table"><table><thead><tr><th>Employee</th><th>Type</th><th>Status</th><th>Eligible</th><th>Regular earnings</th><th>Deductions</th><th>Overtime input</th><th>Premium earnings</th><th>Night differential</th><th>Revised gross pay</th><th>Premium status</th><th>Actions</th></tr></thead><tbody>{entries.map((entry) => {
         const deductions = entry.absenceDeductionRounded + entry.lateDeductionRounded + entry.undertimeDeductionRounded + entry.unpaidLeaveDeduction;
-        return <tr key={entry.id}><td><Link className="table-link" href={`/payroll/periods/${workspace.period.id}/employees/${entry.employeeId}`}>{entry.employee.fullName || "Employee"}</Link><span className="table-subtext">{entry.employee.employeeNumber}</span></td><td>{entry.compensationType ? compensationTypeLabel(entry.compensationType) : "Unavailable"}</td><td><span className={`badge ${entry.blockingExceptionCount ? "danger" : entry.isStale ? "warning" : entry.status === "excluded" ? "info" : "success"}`}>{entryStatus(entry)}</span>{entry.openExceptionCount ? <span className="table-subtext">{entry.openExceptionCount} open</span> : null}</td><td>{entry.eligibleWorkdays} days<span className="table-subtext">{formatPayrollMinutes(entry.eligibleMinutes)}</span></td><td>{formatPayrollMoney(entry.regularEarningsRounded, entry.currencyCode)}</td><td>{formatPayrollMoney(deductions, entry.currencyCode)}</td><td>{formatPayrollMinutes(entry.approvedOvertimeMinutes)}</td><td><strong>{formatPayrollMoney(entry.grossPayRounded, entry.currencyCode)}</strong></td><td><div className="table-actions">{entry.isStale || entry.status === "exception" ? <RecalculateForm periodId={workspace.period.id} employeeId={entry.employeeId}/> : null}{entry.status !== "excluded" ? <ExcludeForm periodId={workspace.period.id} employeeId={entry.employeeId}/> : entry.activeExclusionId ? <ReverseExclusionForm periodId={workspace.period.id} exclusionId={entry.activeExclusionId}/> : null}</div></td></tr>;
+        return <tr key={entry.id}><td><Link className="table-link" href={`/payroll/periods/${workspace.period.id}/employees/${entry.employeeId}`}>{entry.employee.fullName || "Employee"}</Link><span className="table-subtext">{entry.employee.employeeNumber}</span></td><td>{entry.compensationType ? compensationTypeLabel(entry.compensationType) : "Unavailable"}</td><td><span className={`badge ${entry.blockingExceptionCount ? "danger" : entry.isStale ? "warning" : entry.status === "excluded" ? "info" : "success"}`}>{entryStatus(entry)}</span>{entry.openExceptionCount ? <span className="table-subtext">{entry.openExceptionCount} open</span> : null}</td><td>{entry.eligibleWorkdays} days<span className="table-subtext">{formatPayrollMinutes(entry.eligibleMinutes)}</span></td><td>{formatPayrollMoney(entry.regularEarningsRounded, entry.currencyCode)}</td><td>{formatPayrollMoney(deductions, entry.currencyCode)}</td><td>{formatPayrollMinutes(entry.approvedOvertimeMinutes)}</td><td>{formatPayrollMoney(entry.premiumEarningsRounded, entry.currencyCode)}</td><td>{formatPayrollMoney(entry.nightDifferentialRounded, entry.currencyCode)}</td><td><strong>{formatPayrollMoney(entry.revisedGrossPayRounded, entry.currencyCode)}</strong></td><td>{entry.isStale ? "Needs recalculation" : entry.blockingExceptionCount ? "Blocked" : entry.premiumCalculatedAt ? "Calculated" : "Pending"}</td><td><div className="table-actions">{entry.isStale || entry.status === "exception" ? <RecalculateForm periodId={workspace.period.id} employeeId={entry.employeeId}/> : null}{entry.status !== "excluded" ? <ExcludeForm periodId={workspace.period.id} employeeId={entry.employeeId}/> : entry.activeExclusionId ? <ReverseExclusionForm periodId={workspace.period.id} exclusionId={entry.activeExclusionId}/> : null}</div></td></tr>;
       })}</tbody></table></div> : <div className="card empty">No employee calculations match this filter.</div>}
     </section>
 

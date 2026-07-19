@@ -97,6 +97,9 @@ export function Sidebar({
       ? [
           ["/payroll", "Payroll", WalletCards] as const,
           ["/payroll/settings/basis-rules", "Payroll Basis", Settings] as const,
+          ["/payroll/settings/premium-rules", "Premium Rules", Settings] as const,
+          ["/payroll/settings/attendance-deduction-rules", "Attendance Deductions", Settings] as const,
+          ...(isSuperAdmin ? [["/payroll/approvals/premium-rules", "Premium Approvals", ShieldCheck] as const] : []),
         ]
       : []),
   ];

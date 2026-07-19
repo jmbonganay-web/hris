@@ -13,6 +13,7 @@ export type HolidayCalendarVersion = {
   holiday_date: string;
   holiday_name: string;
   holiday_type: HolidayType;
+  holiday_count: 1 | 2;
   is_active: boolean;
   created_by: string;
   created_at: string;
@@ -41,6 +42,7 @@ export type HolidayActionState = {
     holidayDate?: string;
     holidayName?: string;
     holidayType?: HolidayType;
+    holidayCount?: "1" | "2";
     isActive?: "true" | "false";
   };
 };

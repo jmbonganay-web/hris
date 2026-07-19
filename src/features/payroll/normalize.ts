@@ -12,6 +12,10 @@ import {
   payrollExceptionSeverityValues,
   payrollExceptionStatusValues,
   payrollSourceTypeValues,
+  premiumDayTypeValues,
+  premiumRuleScopeTypeValues,
+  premiumTimeRoundingModeValues,
+  premiumTypeValues,
   type CompensationEventType,
   type CompensationType,
   type PayrollBusinessDayAdjustment,
@@ -25,6 +29,10 @@ import {
   type PayrollExceptionSeverity,
   type PayrollExceptionStatus,
   type PayrollSourceType,
+  type PremiumDayType,
+  type PremiumRuleScopeType,
+  type PremiumTimeRoundingMode,
+  type PremiumType,
 } from "./constants.ts";
 import type {
   CompensationRecord,
@@ -55,6 +63,17 @@ import type {
   PayrollEntryException,
   PayrollInputSnapshot,
   PayrollReadiness,
+  AttendanceDeductionRule,
+  PremiumApprovalQueue,
+  PremiumCoveragePreview,
+  PremiumRuleDay,
+  PremiumRuleDayInput,
+  PremiumRuleList,
+  PremiumRulePreset,
+  PremiumRuleSet,
+  PayrollDayTypeResolution,
+  PayrollPremiumEvent,
+  PayrollPremiumLine,
 } from "./types.ts";
 
 const unavailable = () => new Error("Payroll data is unavailable.");
@@ -389,6 +408,14 @@ const exceptionStatus = (value: unknown): PayrollExceptionStatus =>
   enumValue(value, payrollExceptionStatusValues);
 const sourceType = (value: unknown): PayrollSourceType =>
   enumValue(value, payrollSourceTypeValues);
+const premiumRuleScopeType = (value: unknown): PremiumRuleScopeType =>
+  enumValue(value, premiumRuleScopeTypeValues);
+const premiumDayType = (value: unknown): PremiumDayType =>
+  enumValue(value, premiumDayTypeValues);
+const premiumTimeRoundingMode = (value: unknown): PremiumTimeRoundingMode =>
+  enumValue(value, premiumTimeRoundingModeValues);
+const premiumType = (value: unknown): PremiumType =>
+  enumValue(value, premiumTypeValues);
 
 function normalizePayrollBasisRule(value: unknown): PayrollBasisRule {
   const row = object(value);
@@ -459,6 +486,7 @@ function normalizePayrollReadiness(value: unknown): PayrollReadiness {
     blockingExceptionCount: numberValue(row.blockingExceptionCount ?? row.blocking_exception_count),
     staleEntryCount: numberValue(row.staleEntryCount ?? row.stale_entry_count),
     missingEmployeeCount: numberValue(row.missingEmployeeCount ?? row.missing_employee_count),
+    missingPremiumEntryCount: numberValue(row.missingPremiumEntryCount ?? row.missing_premium_entry_count),
   };
 }
 
@@ -504,6 +532,13 @@ export function normalizePayrollEmployeeEntry(value: unknown): PayrollEmployeeEn
     unpaidLeaveDeduction: numberValue(row.unpaid_leave_deduction),
     grossPayRaw: numberValue(row.gross_pay_raw),
     grossPayRounded: numberValue(row.gross_pay_rounded),
+    premiumEarningsRaw: numberValue(row.premium_earnings_raw),
+    premiumEarningsRounded: numberValue(row.premium_earnings_rounded),
+    nightDifferentialRaw: numberValue(row.night_differential_raw),
+    nightDifferentialRounded: numberValue(row.night_differential_rounded),
+    revisedGrossPayRaw: numberValue(row.revised_gross_pay_raw, numberValue(row.gross_pay_raw)),
+    revisedGrossPayRounded: numberValue(row.revised_gross_pay_rounded, numberValue(row.gross_pay_rounded)),
+    premiumCalculatedAt: nullableText(row.premium_calculated_at),
     isStale: booleanValue(row.is_stale),
     staleReason: nullableText(row.stale_reason),
     calculatedAt: nullableText(row.calculated_at),
@@ -549,6 +584,11 @@ export function normalizePayrollCalculationWorkspace(value: unknown): PayrollCal
       exceptionCount: numberValue(summary.exception_count),
       staleCount: numberValue(summary.stale_count),
       excludedCount: numberValue(summary.excluded_count),
+      premiumEarnings: numberValue(summary.premium_earnings),
+      nightDifferential: numberValue(summary.night_differential),
+      revisedGrossPay: numberValue(summary.revised_gross_pay),
+      premiumPendingCount: numberValue(summary.premium_pending_count),
+      premiumExceptionCount: numberValue(summary.premium_exception_count),
     },
   };
 }
@@ -568,6 +608,11 @@ function normalizePayrollDailyBreakdown(value: unknown): PayrollDailyBreakdown {
     lateMinutes: numberValue(row.late_minutes),
     undertimeMinutes: numberValue(row.undertime_minutes),
     approvedOvertimeMinutes: numberValue(row.approved_overtime_minutes),
+    attendanceDeductionRuleId: nullableText(row.attendance_deduction_rule_id),
+    lateGraceMinutes: numberValue(row.late_grace_minutes),
+    lateDeductibleMinutes: numberValue(row.late_deductible_minutes, numberValue(row.late_minutes)),
+    undertimeGraceMinutes: numberValue(row.undertime_grace_minutes),
+    undertimeDeductibleMinutes: numberValue(row.undertime_deductible_minutes, numberValue(row.undertime_minutes)),
     dailyRateRaw: numberValue(row.daily_rate_raw),
     hourlyRateRaw: numberValue(row.hourly_rate_raw),
     regularEarningsRaw: numberValue(row.regular_earnings_raw),
@@ -637,6 +682,215 @@ export function normalizePayrollEmployeeCalculationDetail(value: unknown): Payro
     dailyBreakdowns: array(row.daily_breakdowns).map(normalizePayrollDailyBreakdown),
     snapshots: array(row.snapshots).map(normalizePayrollInputSnapshot),
     exceptions: array(row.exceptions).map((item) => ({ ...normalizePayrollEntryException({ ...object(item), employee }), employee })),
+    dayTypeResolutions: array(row.day_type_resolutions).map(normalizePayrollDayTypeResolution),
+    premiumLines: array(row.premium_lines).map(normalizePayrollPremiumLine),
+    premiumEvents: array(row.premium_events).map(normalizePayrollPremiumEvent),
   };
 }
 
+
+
+function normalizePremiumRuleDayInput(value: unknown): PremiumRuleDayInput {
+  const row = object(value);
+  return {
+    dayType: premiumDayType(row.day_type ?? row.dayType),
+    regularTimeMultiplier: numberValue(row.regular_time_multiplier ?? row.regularTimeMultiplier),
+    overtimeMultiplier: numberValue(row.overtime_multiplier ?? row.overtimeMultiplier),
+    additionalPremiumOnly: booleanValue(row.additional_premium_only ?? row.additionalPremiumOnly),
+    nightDifferentialPercentage: numberValue(row.night_differential_percentage ?? row.nightDifferentialPercentage),
+    nightWindowStart: text(row.night_window_start ?? row.nightWindowStart),
+    nightWindowEnd: text(row.night_window_end ?? row.nightWindowEnd),
+    overtimeRoundingMode: premiumTimeRoundingMode(row.overtime_rounding_mode ?? row.overtimeRoundingMode),
+    overtimeRoundingIncrementMinutes: nullableNumber(row.overtime_rounding_increment_minutes ?? row.overtimeRoundingIncrementMinutes),
+    nightRoundingMode: premiumTimeRoundingMode(row.night_rounding_mode ?? row.nightRoundingMode),
+    nightRoundingIncrementMinutes: nullableNumber(row.night_rounding_increment_minutes ?? row.nightRoundingIncrementMinutes),
+  };
+}
+
+function normalizePremiumRuleDay(value: unknown): PremiumRuleDay {
+  const row = object(value);
+  return {
+    ...normalizePremiumRuleDayInput(row),
+    id: text(row.id),
+    versionNumber: numberValue(row.version_number ?? row.versionNumber, 1),
+  };
+}
+
+function normalizePremiumRuleSetItem(value: unknown): PremiumRuleSet {
+  const row = object(value);
+  return {
+    id: text(row.id),
+    supersedesRuleSetId: nullableText(row.supersedes_rule_set_id ?? row.supersedesRuleSetId),
+    name: text(row.name),
+    scopeType: premiumRuleScopeType(row.scope_type ?? row.scopeType),
+    scopeLabel: text(row.scope_label ?? row.scopeLabel),
+    employmentType: nullableText(row.employment_type ?? row.employmentType),
+    departmentId: nullableText(row.department_id ?? row.departmentId),
+    positionId: nullableText(row.position_id ?? row.positionId),
+    payrollGroupId: nullableText(row.payroll_group_id ?? row.payrollGroupId),
+    effectiveFrom: text(row.effective_from ?? row.effectiveFrom),
+    effectiveTo: nullableText(row.effective_to ?? row.effectiveTo),
+    status: requestStatus(row.status),
+    changeReason: nullableText(row.change_reason ?? row.changeReason),
+    version: numberValue(row.version, 1),
+    sourceAgency: text(row.source_agency ?? row.sourceAgency),
+    sourceReference: text(row.source_reference ?? row.sourceReference),
+    sourcePublicationDate: text(row.source_publication_date ?? row.sourcePublicationDate),
+    sourceUrl: text(row.source_url ?? row.sourceUrl),
+    submittedAt: nullableText(row.submitted_at ?? row.submittedAt),
+    approvedAt: nullableText(row.approved_at ?? row.approvedAt),
+    rejectedAt: nullableText(row.rejected_at ?? row.rejectedAt),
+    rejectionReason: nullableText(row.rejection_reason ?? row.rejectionReason),
+    createdAt: text(row.created_at ?? row.createdAt),
+    updatedAt: text(row.updated_at ?? row.updatedAt),
+    dayRules: array(row.day_rules ?? row.dayRules).map(normalizePremiumRuleDay),
+  };
+}
+
+function normalizePremiumRulePresetItem(value: unknown): PremiumRulePreset {
+  const row = object(value);
+  return {
+    code: text(row.code),
+    name: text(row.name),
+    countryCode: text(row.country_code ?? row.countryCode, "PH") === "PH" ? "PH" : "PH",
+    sourceAgency: text(row.source_agency ?? row.sourceAgency),
+    sourceReference: text(row.source_reference ?? row.sourceReference),
+    sourcePublicationDate: text(row.source_publication_date ?? row.sourcePublicationDate),
+    sourceUrl: text(row.source_url ?? row.sourceUrl),
+    dayRules: array(row.day_rules ?? row.dayRules).map(normalizePremiumRuleDayInput),
+  };
+}
+
+export function normalizePremiumRuleList(value: unknown): PremiumRuleList {
+  const row = object(value);
+  return {
+    rules: array(row.rules).map(normalizePremiumRuleSetItem),
+    presets: array(row.presets).map(normalizePremiumRulePresetItem),
+    departments: array(row.departments).map((item) => {
+      const entry = object(item);
+      return { id: text(entry.id), name: text(entry.name) };
+    }),
+    positions: array(row.positions).map((item) => {
+      const entry = object(item);
+      return { id: text(entry.id), name: text(entry.name ?? entry.title) };
+    }),
+    payrollGroups: array(row.payroll_groups ?? row.payrollGroups).map((item) => {
+      const entry = object(item);
+      return { id: text(entry.id), code: text(entry.code), name: text(entry.name) };
+    }),
+  };
+}
+
+export function normalizePremiumRuleSet(value: unknown): PremiumRuleSet | null {
+  return value === null || value === undefined ? null : normalizePremiumRuleSetItem(value);
+}
+
+function normalizeAttendanceDeductionRuleItem(value: unknown): AttendanceDeductionRule {
+  const row = object(value);
+  return {
+    id: text(row.id),
+    supersedesRuleId: nullableText(row.supersedes_rule_id ?? row.supersedesRuleId),
+    scopeType: premiumRuleScopeType(row.scope_type ?? row.scopeType),
+    scopeLabel: text(row.scope_label ?? row.scopeLabel),
+    employmentType: nullableText(row.employment_type ?? row.employmentType),
+    departmentId: nullableText(row.department_id ?? row.departmentId),
+    positionId: nullableText(row.position_id ?? row.positionId),
+    payrollGroupId: nullableText(row.payroll_group_id ?? row.payrollGroupId),
+    lateGraceMinutes: numberValue(row.late_grace_minutes ?? row.lateGraceMinutes),
+    undertimeGraceMinutes: numberValue(row.undertime_grace_minutes ?? row.undertimeGraceMinutes),
+    lateRoundingMode: premiumTimeRoundingMode(row.late_rounding_mode ?? row.lateRoundingMode),
+    lateRoundingIncrementMinutes: nullableNumber(row.late_rounding_increment_minutes ?? row.lateRoundingIncrementMinutes),
+    undertimeRoundingMode: premiumTimeRoundingMode(row.undertime_rounding_mode ?? row.undertimeRoundingMode),
+    undertimeRoundingIncrementMinutes: nullableNumber(row.undertime_rounding_increment_minutes ?? row.undertimeRoundingIncrementMinutes),
+    effectiveFrom: text(row.effective_from ?? row.effectiveFrom),
+    effectiveTo: nullableText(row.effective_to ?? row.effectiveTo),
+    changeReason: text(row.change_reason ?? row.changeReason),
+    status: requestStatus(row.status),
+    version: numberValue(row.version, 1),
+    submittedAt: nullableText(row.submitted_at ?? row.submittedAt),
+    approvedAt: nullableText(row.approved_at ?? row.approvedAt),
+    rejectedAt: nullableText(row.rejected_at ?? row.rejectedAt),
+    rejectionReason: nullableText(row.rejection_reason ?? row.rejectionReason),
+    createdAt: text(row.created_at ?? row.createdAt),
+    updatedAt: text(row.updated_at ?? row.updatedAt),
+  };
+}
+
+export function normalizeAttendanceDeductionRuleList(value: unknown): AttendanceDeductionRule[] {
+  if (value === null || value === undefined) return [];
+  if (Array.isArray(value)) return value.map(normalizeAttendanceDeductionRuleItem);
+  const row = object(value);
+  return array(row.rules ?? row.items).map(normalizeAttendanceDeductionRuleItem);
+}
+
+export function normalizePremiumApprovalQueue(value: unknown): PremiumApprovalQueue {
+  const row = object(value);
+  return {
+    premiumRules: array(row.premium_rules ?? row.premiumRules).map(normalizePremiumRuleSetItem),
+    attendanceDeductionRules: array(row.attendance_deduction_rules ?? row.attendanceDeductionRules).map(normalizeAttendanceDeductionRuleItem),
+  };
+}
+
+export function normalizePremiumCoveragePreview(value: unknown): PremiumCoveragePreview {
+  const row = object(value);
+  return {
+    affectedEmployeeCount: numberValue(row.affected_employee_count ?? row.affectedEmployeeCount),
+    affectedOpenPeriodCount: numberValue(row.affected_open_period_count ?? row.affectedOpenPeriodCount),
+    staleEntryCount: numberValue(row.stale_entry_count ?? row.staleEntryCount),
+    conflictingRuleIds: array(row.conflicting_rule_ids ?? row.conflictingRuleIds).map((item) => text(item)).filter(Boolean),
+    missingDayTypes: array(row.missing_day_types ?? row.missingDayTypes).map(premiumDayType),
+  };
+}
+
+function normalizePayrollDayTypeResolution(value: unknown): PayrollDayTypeResolution {
+  const row = object(value);
+  return {
+    id: text(row.id),
+    workDate: text(row.work_date ?? row.workDate),
+    baseDayType: premiumDayType(row.base_day_type ?? row.baseDayType),
+    isRestDay: booleanValue(row.is_rest_day ?? row.isRestDay),
+    holidayVersionId: nullableText(row.holiday_version_id ?? row.holidayVersionId),
+    holidayType: nullableText(row.holiday_type ?? row.holidayType),
+    holidayCount: numberValue(row.holiday_count ?? row.holidayCount, 1),
+    combinedDayType: premiumDayType(row.combined_day_type ?? row.combinedDayType),
+    resolutionSource: isRecord(row.resolution_source ?? row.resolutionSource) ? (row.resolution_source ?? row.resolutionSource) as Record<string, unknown> : {},
+    premiumRuleSetId: text(row.premium_rule_set_id ?? row.premiumRuleSetId),
+    premiumRuleVersionId: text(row.premium_rule_version_id ?? row.premiumRuleVersionId),
+  };
+}
+
+function normalizePayrollPremiumLine(value: unknown): PayrollPremiumLine {
+  const row = object(value);
+  return {
+    id: text(row.id),
+    dailyBreakdownId: text(row.payroll_entry_daily_breakdown_id ?? row.daily_breakdown_id ?? row.dailyBreakdownId),
+    workDate: text(row.work_date ?? row.workDate),
+    premiumType: premiumType(row.premium_type ?? row.premiumType),
+    dayType: premiumDayType(row.day_type ?? row.dayType),
+    premiumRuleSetId: text(row.premium_rule_set_id ?? row.premiumRuleSetId),
+    premiumRuleVersionId: text(row.premium_rule_version_id ?? row.premiumRuleVersionId),
+    baseHourlyRateRaw: numberValue(row.base_hourly_rate_raw ?? row.baseHourlyRateRaw),
+    rawMinutes: numberValue(row.raw_minutes ?? row.rawMinutes),
+    roundedMinutes: numberValue(row.rounded_minutes ?? row.roundedMinutes),
+    dayMultiplier: numberValue(row.day_multiplier ?? row.dayMultiplier),
+    overtimeMultiplier: numberValue(row.overtime_multiplier ?? row.overtimeMultiplier),
+    nightPercentage: numberValue(row.night_percentage ?? row.nightPercentage),
+    baseAmountRaw: numberValue(row.base_amount_raw ?? row.baseAmountRaw),
+    premiumAmountRaw: numberValue(row.premium_amount_raw ?? row.premiumAmountRaw),
+    premiumAmountRounded: numberValue(row.premium_amount_rounded ?? row.premiumAmountRounded),
+    isAdditionalOnly: booleanValue(row.is_additional_only ?? row.isAdditionalOnly),
+    calculationDetails: isRecord(row.calculation_details ?? row.calculationDetails) ? (row.calculation_details ?? row.calculationDetails) as Record<string, unknown> : {},
+    createdAt: text(row.created_at ?? row.createdAt),
+  };
+}
+
+function normalizePayrollPremiumEvent(value: unknown): PayrollPremiumEvent {
+  const row = object(value);
+  return {
+    id: text(row.id),
+    eventType: text(row.event_type ?? row.eventType),
+    reason: nullableText(row.reason),
+    metadata: isRecord(row.metadata) ? row.metadata : {},
+    createdAt: text(row.created_at ?? row.createdAt),
+  };
+}

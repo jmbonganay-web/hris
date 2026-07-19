@@ -156,3 +156,19 @@ test("README documents migration, routes, exclusions, and verification", () => {
   assert.match(readme, /npx tsc --noEmit/);
   assert.match(readme, /npm run build/);
 });
+
+const holidaysPage = await readFile(
+  new URL("../../app/(dashboard)/settings/holidays/page.tsx", import.meta.url),
+  "utf8",
+).catch(() => "");
+const holidayDetailPage = await readFile(
+  new URL("../../app/(dashboard)/settings/holidays/[holidayGroupId]/page.tsx", import.meta.url),
+  "utf8",
+).catch(() => "");
+
+test("holiday calendar displays single and double regular classifications", () => {
+  assert.match(holidaysPage, /holiday_count/);
+  assert.match(holidaysPage, /Double regular holiday/);
+  assert.match(holidayDetailPage, /Holiday count/);
+  assert.match(holidayDetailPage, /Double regular holiday/);
+});

@@ -5,6 +5,10 @@ import type {
   PayrollScheduleType,
   PayrollCalculationRunStatus,
   PayrollEmployeeEntryStatus,
+  PremiumDayType,
+  PremiumRuleScopeType,
+  PremiumTimeRoundingMode,
+  PremiumType,
 } from "./constants.ts";
 
 const scheduleTypeLabels: Record<PayrollScheduleType, string> = {
@@ -109,3 +113,62 @@ export function formatPayrollMinutes(value: number) {
   return `${hours}h ${remainder}m`;
 }
 
+
+
+const premiumRuleScopeLabels: Record<PremiumRuleScopeType, string> = {
+  company_default: "Company default",
+  employment_type: "Employment type",
+  department: "Department",
+  position: "Position",
+  payroll_group: "Payroll group",
+};
+
+const premiumDayTypeLabels: Record<PremiumDayType, string> = {
+  regular_workday: "Regular workday",
+  rest_day: "Rest day",
+  special_non_working_day: "Special non-working day",
+  regular_holiday: "Regular holiday",
+  special_day_rest_day: "Special day + rest day",
+  regular_holiday_rest_day: "Regular holiday + rest day",
+  double_regular_holiday: "Double regular holiday",
+  double_regular_holiday_rest_day: "Double regular holiday + rest day",
+};
+
+const premiumTypeLabels: Record<PremiumType, string> = {
+  rest_day: "Rest-day premium",
+  special_day: "Special-day premium",
+  regular_holiday: "Regular-holiday premium",
+  special_day_rest_day: "Special day + rest-day premium",
+  regular_holiday_rest_day: "Regular holiday + rest-day premium",
+  double_holiday: "Double-holiday premium",
+  double_holiday_rest_day: "Double holiday + rest-day premium",
+  regular_overtime: "Regular overtime",
+  rest_day_overtime: "Rest-day overtime",
+  special_day_overtime: "Special-day overtime",
+  regular_holiday_overtime: "Regular-holiday overtime",
+  combined_day_overtime: "Combined-day overtime",
+  night_differential: "Night differential",
+};
+
+const premiumRoundingLabels: Record<PremiumTimeRoundingMode, string> = {
+  exact_minutes: "Exact minutes",
+  round_down: "Round down",
+  round_up: "Round up",
+  nearest_increment: "Nearest increment",
+};
+
+export function premiumRuleScopeLabel(value: PremiumRuleScopeType) {
+  return premiumRuleScopeLabels[value];
+}
+export function premiumDayTypeLabel(value: PremiumDayType) {
+  return premiumDayTypeLabels[value];
+}
+export function premiumTypeLabel(value: PremiumType) {
+  return premiumTypeLabels[value];
+}
+export function premiumTimeRoundingModeLabel(value: PremiumTimeRoundingMode) {
+  return premiumRoundingLabels[value];
+}
+export function premiumStatusLabel(value: PayrollRequestStatus) {
+  return requestStatusLabels[value];
+}

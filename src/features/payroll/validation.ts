@@ -3,9 +3,14 @@ import {
   payrollPeriodStatusValues,
   payrollScheduleTypeValues,
   payrollBasisRoundingModeValues,
+  premiumRuleScopeTypeValues,
+  premiumDayTypeValues,
+  premiumTimeRoundingModeValues,
   type CompensationType,
   type PayrollPeriodStatus,
   type PayrollScheduleType,
+  type PremiumRuleScopeType,
+  type PremiumTimeRoundingMode,
 } from "./constants.ts";
 import type {
   CompensationInput,
@@ -16,6 +21,9 @@ import type {
   PayrollBasisRuleInput,
   PayrollCalculationRunInput,
   PayrollReasonActionInput,
+  PremiumRuleSetInput,
+  PremiumRuleDayInput,
+  AttendanceDeductionRuleInput,
 } from "./types.ts";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -320,3 +328,231 @@ export function validatePayrollReasonActionInput(
   return { data: { id, reason } };
 }
 
+
+
+const timePattern = /^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/;
+
+function parseJsonArray(value: unknown): unknown[] | null {
+  if (Array.isArray(value)) return value;
+  const raw = text(value);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function validateScope(
+  input: UnknownRecord,
+  fieldErrors: Record<string, string>,
+): {
+  scopeType: PremiumRuleScopeType;
+  employmentType: string | null;
+  departmentId: string | null;
+  positionId: string | null;
+  payrollGroupId: string | null;
+} {
+  const scopeType = text(input.scopeType ?? input.scope_type) as PremiumRuleScopeType;
+  const employmentType = optionalText(input.employmentType ?? input.employment_type);
+  const departmentId = optionalText(input.departmentId ?? input.department_id);
+  const positionId = optionalText(input.positionId ?? input.position_id);
+  const payrollGroupId = optionalText(input.payrollGroupId ?? input.payroll_group_id);
+  if (!premiumRuleScopeTypeValues.includes(scopeType)) fieldErrors.scope_type = "Choose a valid scope.";
+  const targets = [employmentType, departmentId, positionId, payrollGroupId].filter(Boolean);
+  const expectedTarget = scopeType === "company_default" ? 0 : 1;
+  if (targets.length !== expectedTarget) fieldErrors.scope_target = scopeType === "company_default"
+    ? "Company-default rules cannot target a group."
+    : "Choose exactly one target for this scope.";
+  if (scopeType === "employment_type" && !employmentType) fieldErrors.employment_type = "Choose an employment type.";
+  if (scopeType === "department" && (!departmentId || !uuidPattern.test(departmentId))) fieldErrors.department_id = "Choose a valid department.";
+  if (scopeType === "position" && (!positionId || !uuidPattern.test(positionId))) fieldErrors.position_id = "Choose a valid position.";
+  if (scopeType === "payroll_group" && (!payrollGroupId || !uuidPattern.test(payrollGroupId))) fieldErrors.payroll_group_id = "Choose a valid payroll group.";
+  return { scopeType, employmentType, departmentId, positionId, payrollGroupId };
+}
+
+function parseRounding(
+  rawMode: unknown,
+  rawIncrement: unknown,
+  key: string,
+  fieldErrors: Record<string, string>,
+): { mode: PremiumTimeRoundingMode; increment: number | null } {
+  const mode = text(rawMode) as PremiumTimeRoundingMode;
+  const increment = numberValue(rawIncrement);
+  if (!premiumTimeRoundingModeValues.includes(mode)) fieldErrors[key] = "Choose a valid rounding method.";
+  if (mode === "exact_minutes") {
+    if (increment !== null) fieldErrors[`${key}_increment_minutes`] = "Exact-minute rounding does not use an increment.";
+  } else if (increment === null || !Number.isInteger(increment) || increment < 1 || increment > 1440) {
+    fieldErrors[`${key}_increment_minutes`] = "Enter a whole-minute increment from 1 to 1,440.";
+  }
+  return { mode, increment };
+}
+
+function parsePremiumDayRules(
+  value: unknown,
+  fieldErrors: Record<string, string>,
+): PremiumRuleDayInput[] {
+  const items = parseJsonArray(value);
+  if (!items || items.length !== premiumDayTypeValues.length) {
+    fieldErrors.day_rules = "Configure every supported day type exactly once.";
+    return [];
+  }
+  const results: PremiumRuleDayInput[] = [];
+  const seen = new Set<string>();
+  items.forEach((item, index) => {
+    if (typeof item !== "object" || item === null || Array.isArray(item)) {
+      fieldErrors.day_rules = "Review the premium-rule matrix.";
+      return;
+    }
+    const row = item as UnknownRecord;
+    const dayType = text(row.dayType ?? row.day_type) as PremiumRuleDayInput["dayType"];
+    const regularTimeMultiplier = numberValue(row.regularTimeMultiplier ?? row.regular_time_multiplier);
+    const overtimeMultiplier = numberValue(row.overtimeMultiplier ?? row.overtime_multiplier);
+    const nightDifferentialPercentage = numberValue(row.nightDifferentialPercentage ?? row.night_differential_percentage);
+    const nightWindowStart = text(row.nightWindowStart ?? row.night_window_start);
+    const nightWindowEnd = text(row.nightWindowEnd ?? row.night_window_end);
+    const additionalPremiumOnly = booleanValue(row.additionalPremiumOnly ?? row.additional_premium_only);
+    const overtime = parseRounding(row.overtimeRoundingMode ?? row.overtime_rounding_mode, row.overtimeRoundingIncrementMinutes ?? row.overtime_rounding_increment_minutes, `day_rules_${index}_overtime_rounding`, fieldErrors);
+    const night = parseRounding(row.nightRoundingMode ?? row.night_rounding_mode, row.nightRoundingIncrementMinutes ?? row.night_rounding_increment_minutes, `day_rules_${index}_night_rounding`, fieldErrors);
+    if (!premiumDayTypeValues.includes(dayType) || seen.has(dayType)) fieldErrors.day_rules = "Day types must be unique and supported.";
+    seen.add(dayType);
+    if (regularTimeMultiplier === null || regularTimeMultiplier <= 0 || regularTimeMultiplier > 10) fieldErrors.day_rules = "Regular-time multipliers must be greater than zero and no more than 10.";
+    if (overtimeMultiplier === null || overtimeMultiplier <= 0 || overtimeMultiplier > 10) fieldErrors.day_rules = "Overtime multipliers must be greater than zero and no more than 10.";
+    if (nightDifferentialPercentage === null || nightDifferentialPercentage < 0 || nightDifferentialPercentage > 5) fieldErrors.day_rules = "Night differential must be between 0 and 5.";
+    if (!timePattern.test(nightWindowStart) || !timePattern.test(nightWindowEnd)) {
+      fieldErrors.day_rules = "Use valid 24-hour night-window times.";
+    } else if (nightWindowStart === nightWindowEnd) {
+      fieldErrors.day_rules = "Night-window start and end times must be different.";
+    }
+    results.push({
+      dayType,
+      regularTimeMultiplier: regularTimeMultiplier ?? 0,
+      overtimeMultiplier: overtimeMultiplier ?? 0,
+      additionalPremiumOnly,
+      nightDifferentialPercentage: nightDifferentialPercentage ?? 0,
+      nightWindowStart,
+      nightWindowEnd,
+      overtimeRoundingMode: overtime.mode,
+      overtimeRoundingIncrementMinutes: overtime.increment,
+      nightRoundingMode: night.mode,
+      nightRoundingIncrementMinutes: night.increment,
+    });
+  });
+  if (seen.size !== premiumDayTypeValues.length) fieldErrors.day_rules = "Configure every supported day type exactly once.";
+  return results;
+}
+
+export function validatePremiumRuleSetInput(input: UnknownRecord): ValidationResult<PremiumRuleSetInput> {
+  const fieldErrors: Record<string, string> = {};
+  const name = text(input.name);
+  const scope = validateScope(input, fieldErrors);
+  const effectiveFrom = text(input.effectiveFrom ?? input.effective_from);
+  const effectiveTo = optionalText(input.effectiveTo ?? input.effective_to);
+  const changeReason = text(input.changeReason ?? input.change_reason);
+  const sourceAgency = text(input.sourceAgency ?? input.source_agency);
+  const sourceReference = text(input.sourceReference ?? input.source_reference);
+  const sourcePublicationDate = text(input.sourcePublicationDate ?? input.source_publication_date);
+  const sourceUrl = text(input.sourceUrl ?? input.source_url);
+  const dayRules = parsePremiumDayRules(input.dayRules ?? input.day_rules, fieldErrors);
+  if (name.length < 2 || name.length > 120) fieldErrors.name = "Name must be between 2 and 120 characters.";
+  if (!datePattern.test(effectiveFrom)) fieldErrors.effective_from = "Effective date is required.";
+  if (effectiveTo && (!datePattern.test(effectiveTo) || effectiveTo < effectiveFrom)) fieldErrors.effective_to = "End date must be on or after the effective date.";
+  if (!changeReason || changeReason.length > 1000) fieldErrors.change_reason = "Reason is required and must be 1,000 characters or fewer.";
+  if (!sourceAgency || sourceAgency.length > 200) fieldErrors.source_agency = "Issuing agency is required and must be 200 characters or fewer.";
+  if (!sourceReference || sourceReference.length > 300) fieldErrors.source_reference = "Source reference is required and must be 300 characters or fewer.";
+  if (!datePattern.test(sourcePublicationDate)) fieldErrors.source_publication_date = "Publication date is required.";
+  try { if (new URL(sourceUrl).protocol !== "https:") throw new Error(); } catch { fieldErrors.source_url = "Enter a valid HTTPS source URL."; }
+  if (Object.keys(fieldErrors).length) return invalid(fieldErrors);
+  return { data: { name, ...scope, effectiveFrom, effectiveTo, changeReason, sourceAgency, sourceReference, sourcePublicationDate, sourceUrl, dayRules } };
+}
+
+export function validateAttendanceDeductionRuleInput(input: UnknownRecord): ValidationResult<AttendanceDeductionRuleInput> {
+  const fieldErrors: Record<string, string> = {};
+  const scope = validateScope(input, fieldErrors);
+  const lateGraceMinutes = numberValue(input.lateGraceMinutes ?? input.late_grace_minutes);
+  const undertimeGraceMinutes = numberValue(input.undertimeGraceMinutes ?? input.undertime_grace_minutes);
+  const late = parseRounding(input.lateRoundingMode ?? input.late_rounding_mode, input.lateRoundingIncrementMinutes ?? input.late_rounding_increment_minutes, "late_rounding_mode", fieldErrors);
+  const undertime = parseRounding(input.undertimeRoundingMode ?? input.undertime_rounding_mode, input.undertimeRoundingIncrementMinutes ?? input.undertime_rounding_increment_minutes, "undertime_rounding_mode", fieldErrors);
+  const effectiveFrom = text(input.effectiveFrom ?? input.effective_from);
+  const effectiveTo = optionalText(input.effectiveTo ?? input.effective_to);
+  const changeReason = text(input.changeReason ?? input.change_reason);
+  if (lateGraceMinutes === null || !Number.isInteger(lateGraceMinutes) || lateGraceMinutes < 0 || lateGraceMinutes > 1440) fieldErrors.late_grace_minutes = "Late grace must be a whole number from 0 to 1,440.";
+  if (undertimeGraceMinutes === null || !Number.isInteger(undertimeGraceMinutes) || undertimeGraceMinutes < 0 || undertimeGraceMinutes > 1440) fieldErrors.undertime_grace_minutes = "Undertime grace must be a whole number from 0 to 1,440.";
+  if (!datePattern.test(effectiveFrom)) fieldErrors.effective_from = "Effective date is required.";
+  if (effectiveTo && (!datePattern.test(effectiveTo) || effectiveTo < effectiveFrom)) fieldErrors.effective_to = "End date must be on or after the effective date.";
+  if (!changeReason || changeReason.length > 1000) fieldErrors.change_reason = "Reason is required and must be 1,000 characters or fewer.";
+  if (Object.keys(fieldErrors).length) return invalid(fieldErrors);
+  return { data: { ...scope, lateGraceMinutes: lateGraceMinutes ?? 0, undertimeGraceMinutes: undertimeGraceMinutes ?? 0, lateRoundingMode: late.mode, lateRoundingIncrementMinutes: late.increment, undertimeRoundingMode: undertime.mode, undertimeRoundingIncrementMinutes: undertime.increment, effectiveFrom, effectiveTo, changeReason } };
+}
+
+export function validatePremiumPresetCloneInput(input: UnknownRecord): ValidationResult<{
+  presetCode: string;
+  name: string;
+  scopeType: PremiumRuleScopeType;
+  employmentType: string | null;
+  departmentId: string | null;
+  positionId: string | null;
+  payrollGroupId: string | null;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  changeReason: string;
+}> {
+  const fieldErrors: Record<string, string> = {};
+  const presetCode = text(input.presetCode ?? input.preset_code);
+  const name = text(input.name);
+  const scope = validateScope(input, fieldErrors);
+  const effectiveFrom = text(input.effectiveFrom ?? input.effective_from);
+  const effectiveTo = optionalText(input.effectiveTo ?? input.effective_to);
+  const changeReason = text(input.changeReason ?? input.change_reason);
+  if (!/^[a-z0-9_]{3,80}$/.test(presetCode)) fieldErrors.preset_code = "Choose a valid premium-rule preset.";
+  if (name.length < 2 || name.length > 120) fieldErrors.name = "Name must be between 2 and 120 characters.";
+  if (!datePattern.test(effectiveFrom)) fieldErrors.effective_from = "Effective date is required.";
+  if (effectiveTo && (!datePattern.test(effectiveTo) || effectiveTo < effectiveFrom)) fieldErrors.effective_to = "End date must be on or after the effective date.";
+  if (!changeReason || changeReason.length > 1000) fieldErrors.change_reason = "Reason is required and must be 1,000 characters or fewer.";
+  if (Object.keys(fieldErrors).length) return invalid(fieldErrors);
+  return { data: { presetCode, name, ...scope, effectiveFrom, effectiveTo, changeReason } };
+}
+
+export function validatePremiumRuleCloneInput(input: UnknownRecord): ValidationResult<{ id: string; effectiveFrom: string; effectiveTo: string | null; changeReason: string }> {
+  const id = text(input.id ?? input.rule_set_id ?? input.premium_rule_set_id);
+  const effectiveFrom = text(input.effectiveFrom ?? input.effective_from);
+  const effectiveTo = optionalText(input.effectiveTo ?? input.effective_to);
+  const changeReason = text(input.changeReason ?? input.change_reason);
+  const fieldErrors: Record<string, string> = {};
+  if (!uuidPattern.test(id)) fieldErrors.id = "The selected premium rule is invalid.";
+  if (!datePattern.test(effectiveFrom)) fieldErrors.effective_from = "Effective date is required.";
+  if (effectiveTo && (!datePattern.test(effectiveTo) || effectiveTo < effectiveFrom)) fieldErrors.effective_to = "End date must be on or after the effective date.";
+  if (!changeReason || changeReason.length > 1000) fieldErrors.change_reason = "Reason is required and must be 1,000 characters or fewer.";
+  if (Object.keys(fieldErrors).length) return invalid(fieldErrors);
+  return { data: { id, effectiveFrom, effectiveTo, changeReason } };
+}
+
+export function validatePremiumCalculationInput(input: UnknownRecord): ValidationResult<{ payrollPeriodId: string; mode: "uncalculated" | "selected" | "recalculate"; employeeIds: string[] }> {
+  const payrollPeriodId = text(input.payrollPeriodId ?? input.payroll_period_id);
+  const mode = text(input.mode || "uncalculated") as "uncalculated" | "selected" | "recalculate";
+  const rawEmployeeIds = input.employeeIds ?? input.employee_ids;
+  const employeeIds = Array.isArray(rawEmployeeIds) ? rawEmployeeIds.map(text).filter(Boolean) : text(rawEmployeeIds).split(",").map((value) => value.trim()).filter(Boolean);
+  const fieldErrors: Record<string, string> = {};
+  if (!uuidPattern.test(payrollPeriodId)) fieldErrors.payroll_period_id = "Choose a valid payroll period.";
+  if (!["uncalculated", "selected", "recalculate"].includes(mode)) fieldErrors.mode = "Choose a valid premium calculation mode.";
+  if (["selected", "recalculate"].includes(mode) && employeeIds.length === 0) fieldErrors.employee_ids = "Select at least one employee.";
+  if (employeeIds.some((id) => !uuidPattern.test(id))) fieldErrors.employee_ids = "One or more employees are invalid.";
+  if (Object.keys(fieldErrors).length) return invalid(fieldErrors);
+  return { data: { payrollPeriodId, mode, employeeIds } };
+}
+
+export function validateDraftUpdateIdentity(
+  idValue: unknown,
+  updatedAtValue: unknown,
+): ValidationResult<{ id: string; expectedUpdatedAt: string }> {
+  const id = text(idValue);
+  const expectedUpdatedAt = text(updatedAtValue);
+  const fieldErrors: Record<string, string> = {};
+  if (!uuidPattern.test(id)) fieldErrors.id = "The selected draft is invalid.";
+  if (!expectedUpdatedAt || Number.isNaN(Date.parse(expectedUpdatedAt))) {
+    fieldErrors.expected_updated_at = "Reload the current draft before saving.";
+  }
+  if (Object.keys(fieldErrors).length) return invalid(fieldErrors);
+  return { data: { id, expectedUpdatedAt } };
+}

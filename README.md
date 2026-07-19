@@ -1202,3 +1202,77 @@ The migration deliberately creates **no active payroll basis rule** and performs
 ### Calculation boundaries
 
 Phase 10B.1 calculates monthly and hourly base pay, attendance deductions, paid and unpaid leave effects, proration, and approved overtime input minutes. It does not yet calculate overtime premiums, rest-day or holiday premiums, night differential, allowances, recurring deductions, Philippine statutory contributions, withholding tax, 13th-month accrual, payslips, or exports. Those remain in Phases 10B.2–10C.
+
+## Phase 10B.2A premium rules and calculations
+
+Phase 10B.2A adds effective-dated premium policies and immutable payroll premium results on top of the Phase 10B.1 base calculation engine. It covers overtime, rest-day work, regular and special holidays, supported combined holiday/rest-day classifications, night differential, premium-time rounding, late and undertime grace rules, approval workflows, stale detection, and controlled recalculation.
+
+Apply these forward-only migrations in order:
+
+```text
+supabase/migrations/202607190001_payroll_calculation_foundation.sql
+supabase/migrations/202607190002_fix_payroll_notification_action_urls.sql
+supabase/migrations/202607190003_payroll_premium_rules.sql
+```
+
+Then run the read-only verification statement:
+
+```text
+phase10b2a_post_migration_verification.sql
+```
+
+Every verification row must report `passed = true` before premium rules are configured in production.
+
+### Phase 10B.2A routes
+
+| Route | Purpose | Access |
+|---|---|---|
+| `/payroll/settings/premium-rules` | Review the inactive Philippine reference preset and manage company-default or group-scoped premium rules | HR Admin, Super Admin |
+| `/payroll/settings/premium-rules/new` | Create a premium-rule draft with legal-source metadata and a complete day-type matrix | HR Admin, Super Admin |
+| `/payroll/settings/premium-rules/[ruleSetId]` | Review, edit drafts, submit, compare coverage, approve, reject, or clone a version | HR Admin; approval requires Super Admin |
+| `/payroll/settings/attendance-deduction-rules` | Manage effective-dated late and undertime grace and rounding rules | HR Admin; approval requires Super Admin |
+| `/payroll/approvals/premium-rules` | Review pending premium and attendance-policy approvals | Super Admin |
+| `/payroll/periods/[periodId]/workspace` | Calculate premiums, recalculate affected entries, and review revised gross totals and blockers | HR Admin, Super Admin |
+| `/payroll/periods/[periodId]/employees/[employeeId]` | Review day-type resolutions, premium lines, raw and rounded minutes, rule versions, and history | HR Admin, Super Admin |
+| `/payroll/periods/[periodId]/exceptions` | Review premium-rule, holiday, night-window, and stale-input exceptions | HR Admin, Super Admin |
+
+### First-use procedure
+
+1. Apply `202607190003_payroll_premium_rules.sql` after the Phase 10B.1 migrations.
+2. Run `phase10b2a_post_migration_verification.sql` and require every check to pass.
+3. Open `/payroll/settings/premium-rules` as HR Admin or Super Admin.
+4. Review the inactive Philippine statutory reference preset against current legal advice and company policy.
+5. Clone the preset into a company-default draft; the preset itself never affects payroll.
+6. Confirm the legal source, effective date, multipliers, night window, and rounding settings.
+7. Submit the draft as HR Admin and approve it as Super Admin.
+8. Configure an attendance deduction rule when the company uses grace periods. Without one, the engine preserves Phase 10B.1 zero-grace, exact-minute behavior.
+9. Use a non-production open payroll period to run the existing base calculation first.
+10. Select **Calculate premiums**, review employee premium lines and exceptions, and confirm revised gross totals.
+11. Resolve or recalculate stale entries before moving the period to review.
+12. Do not approve or lock a period until payroll readiness reports no premium blockers or missing premium calculations.
+
+### Calculation and audit guarantees
+
+- Phase 10B.1 base earnings remain unchanged and auditable.
+- Ordinary time stores only the additional premium when base earnings already include the first multiplier.
+- Pre-shift and post-shift approved work is overtime from the first approved minute.
+- Approved rest-day and holiday work is split between ordinary and overtime portions using the standard workday.
+- Night differential is stored as a separate line against the applicable ordinary or overtime premium base.
+- Raw and rounded minutes and amounts are both preserved.
+- Approved and locked periods cannot be recalculated.
+- Recalculation creates a new immutable employee-entry version.
+- Superseded rule versions remain resolvable for their historical effective dates.
+- Premium notifications contain identifiers and statuses, not compensation amounts.
+
+### Verification commands
+
+```bash
+npm ci
+npm test
+npx tsc --noEmit
+npm run build
+```
+
+### Deferred scope
+
+Phase 10B.2A does not include reusable earnings or deduction components, recurring employee assignments, restricted formulas, component caps, one-time adjustments, prior-period correction entries, Philippine statutory contribution calculations, withholding tax, 13th-month accrual, payslips, or payroll exports. These remain assigned to Phases 10B.2B, 10B.2C, 10B.3, and 10C.

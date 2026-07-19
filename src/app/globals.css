@@ -2677,3 +2677,5 @@ a.settings-card:hover { border-color: #bfdbfe; transform: translateY(-1px); box-
     justify-content: center;
   }
 }
+
+.premium-rule-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem}.premium-rule-day-card{border:1px solid var(--border);border-radius:var(--radius);padding:1rem;display:grid;gap:.75rem;background:var(--surface)}.premium-rule-grid.compact{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.premium-rule-grid.compact .premium-rule-day-card{gap:.35rem}.form-grid.compact{grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem}.rounding-control{display:grid;grid-template-columns:minmax(0,1fr) minmax(90px,.5fr);gap:.5rem;align-items:end}.payroll-rule-example{background:var(--surface-muted)}.premium-rule-form .detail-span{grid-column:1/-1}@media(max-width:720px){.premium-rule-grid,.form-grid.compact,.rounding-control{grid-template-columns:1fr}.premium-rule-form .btn,.payroll-basis-actions .btn{width:100%}}

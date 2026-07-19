@@ -107,6 +107,58 @@ export const payrollSourceTypeValues = [
   "overtime",
   "payroll_basis_rule",
   "holiday",
+  "premium_rule",
+  "attendance_deduction_rule",
+  "day_type_resolution",
 ] as const;
 export type PayrollSourceType = (typeof payrollSourceTypeValues)[number];
 
+
+export const premiumRuleScopeTypeValues = [
+  "company_default",
+  "employment_type",
+  "department",
+  "position",
+  "payroll_group",
+] as const;
+export type PremiumRuleScopeType = (typeof premiumRuleScopeTypeValues)[number];
+
+export const premiumDayTypeValues = [
+  "regular_workday",
+  "rest_day",
+  "special_non_working_day",
+  "regular_holiday",
+  "special_day_rest_day",
+  "regular_holiday_rest_day",
+  "double_regular_holiday",
+  "double_regular_holiday_rest_day",
+] as const;
+export type PremiumDayType = (typeof premiumDayTypeValues)[number];
+
+export const premiumTimeRoundingModeValues = [
+  "exact_minutes",
+  "round_down",
+  "round_up",
+  "nearest_increment",
+] as const;
+export type PremiumTimeRoundingMode =
+  (typeof premiumTimeRoundingModeValues)[number];
+
+export const premiumTypeValues = [
+  "rest_day",
+  "special_day",
+  "regular_holiday",
+  "special_day_rest_day",
+  "regular_holiday_rest_day",
+  "double_holiday",
+  "double_holiday_rest_day",
+  "regular_overtime",
+  "rest_day_overtime",
+  "special_day_overtime",
+  "regular_holiday_overtime",
+  "combined_day_overtime",
+  "night_differential",
+] as const;
+export type PremiumType = (typeof premiumTypeValues)[number];
+
+export const premiumRuleStatusValues = payrollRequestStatusValues;

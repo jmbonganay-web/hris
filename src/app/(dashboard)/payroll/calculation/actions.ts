@@ -158,14 +158,42 @@ export async function recalculatePayrollEmployeeAction(
   if (!checked.data) return checked.state ?? { error: "Review the recalculation request." };
   const employeeId = checked.data.employeeIds[0] as string;
   const { supabase } = await requirePayrollAdministrator();
-  const { error } = await supabase.rpc("recalculate_payroll_employee", {
+  const { data: baseResult, error } = await supabase.rpc("recalculate_payroll_employee", {
     p_payroll_period_id: checked.data.payrollPeriodId,
     p_employee_id: employeeId,
     p_request_id: crypto.randomUUID(),
   });
   if (error) return { error: mapPayrollError(error.message) };
+
+  const baseStatus =
+    baseResult && typeof baseResult === "object" && "status" in baseResult
+      ? String(baseResult.status)
+      : null;
+  if (baseStatus === "exception" || baseStatus === "excluded") {
+    refreshPayrollCalculation(checked.data.payrollPeriodId, employeeId);
+    return {
+      success:
+        baseStatus === "exception"
+          ? "Employee base payroll recalculated with exceptions. Resolve them before calculating premiums."
+          : "Employee remains excluded from this payroll period.",
+    };
+  }
+
+  const { error: premiumError } = await supabase.rpc("calculate_payroll_premiums", {
+    p_payroll_period_id: checked.data.payrollPeriodId,
+    p_mode: "selected",
+    p_employee_ids: [employeeId],
+    p_idempotency_key: crypto.randomUUID(),
+  });
+  if (premiumError) {
+    refreshPayrollCalculation(checked.data.payrollPeriodId, employeeId);
+    return {
+      error: `Base payroll was recalculated, but premiums remain pending: ${mapPayrollError(premiumError.message)}`,
+    };
+  }
+
   refreshPayrollCalculation(checked.data.payrollPeriodId, employeeId);
-  return { success: "Employee payroll recalculated." };
+  return { success: "Employee base payroll and premiums recalculated." };
 }
 
 export async function excludeEmployeeFromPayrollAction(

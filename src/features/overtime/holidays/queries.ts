@@ -8,7 +8,7 @@ import type {
 
 const versionSelect = `
   id,holiday_group_id,revision_number,holiday_date,holiday_name,
-  holiday_type,is_active,created_by,created_at,change_reason,
+  holiday_type,holiday_count,is_active,created_by,created_at,change_reason,
   creator:profiles!holiday_calendar_versions_created_by_fkey(
     id,display_name,first_name,last_name
   )
