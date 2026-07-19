@@ -54,6 +54,14 @@ export function HolidayReplacementForm({
           {state.fieldErrors?.holiday_type && <span className="form-error">{state.fieldErrors.holiday_type}</span>}
         </label>
         <label>
+          <span>Holiday count</span>
+          <select className="field" name="holiday_count" defaultValue={state.values?.holidayCount ?? String(activeVersion.holiday_count)}>
+            <option value="1">Single holiday</option>
+            <option value="2">Double regular holiday</option>
+          </select>
+          {state.fieldErrors?.holiday_count && <span className="form-error">{state.fieldErrors.holiday_count}</span>}
+        </label>
+        <label>
           <span>Replacement name</span>
           <input className="field" name="holiday_name" maxLength={160} defaultValue={state.values?.holidayName ?? activeVersion.holiday_name} required />
           {state.fieldErrors?.holiday_name && <span className="form-error">{state.fieldErrors.holiday_name}</span>}

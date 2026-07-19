@@ -51,6 +51,7 @@ export async function createHoliday(
     p_holiday_date: validation.data.holidayDate,
     p_holiday_name: validation.data.holidayName,
     p_holiday_type: validation.data.holidayType,
+    p_holiday_count: validation.data.holidayCount,
     p_change_reason: validation.data.changeReason,
   });
 
@@ -61,6 +62,7 @@ export async function createHoliday(
         holidayDate: validation.data.holidayDate,
         holidayName: validation.data.holidayName,
         holidayType: validation.data.holidayType,
+        holidayCount: String(validation.data.holidayCount) as "1" | "2",
       },
     };
   }
@@ -86,6 +88,7 @@ export async function replaceHoliday(
     p_holiday_date: validation.data.holidayDate,
     p_holiday_name: validation.data.holidayName,
     p_holiday_type: validation.data.holidayType,
+    p_holiday_count: validation.data.holidayCount,
     p_is_active: validation.data.isActive,
     p_change_reason: validation.data.changeReason,
   });
@@ -97,6 +100,7 @@ export async function replaceHoliday(
         holidayDate: validation.data.holidayDate,
         holidayName: validation.data.holidayName,
         holidayType: validation.data.holidayType,
+        holidayCount: String(validation.data.holidayCount) as "1" | "2",
         isActive: validation.data.isActive ? "true" : "false",
       },
     };

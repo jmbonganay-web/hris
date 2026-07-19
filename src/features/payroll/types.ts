@@ -12,6 +12,10 @@ import type {
   PayrollExceptionSeverity,
   PayrollExceptionStatus,
   PayrollSourceType,
+  PremiumDayType,
+  PremiumRuleScopeType,
+  PremiumTimeRoundingMode,
+  PremiumType,
 } from "./constants.ts";
 
 export type PayrollActionState = {
@@ -354,6 +358,7 @@ export type PayrollReadiness = {
   blockingExceptionCount: number;
   staleEntryCount: number;
   missingEmployeeCount: number;
+  missingPremiumEntryCount: number;
 };
 
 export type PayrollEmployeeEntry = {
@@ -395,6 +400,13 @@ export type PayrollEmployeeEntry = {
   unpaidLeaveDeduction: number;
   grossPayRaw: number;
   grossPayRounded: number;
+  premiumEarningsRaw: number;
+  premiumEarningsRounded: number;
+  nightDifferentialRaw: number;
+  nightDifferentialRounded: number;
+  revisedGrossPayRaw: number;
+  revisedGrossPayRounded: number;
+  premiumCalculatedAt: string | null;
   isStale: boolean;
   staleReason: string | null;
   calculatedAt: string | null;
@@ -416,6 +428,11 @@ export type PayrollCalculationWorkspace = {
     exceptionCount: number;
     staleCount: number;
     excludedCount: number;
+    premiumEarnings: number;
+    nightDifferential: number;
+    revisedGrossPay: number;
+    premiumPendingCount: number;
+    premiumExceptionCount: number;
   };
 };
 
@@ -432,6 +449,11 @@ export type PayrollDailyBreakdown = {
   lateMinutes: number;
   undertimeMinutes: number;
   approvedOvertimeMinutes: number;
+  attendanceDeductionRuleId: string | null;
+  lateGraceMinutes: number;
+  lateDeductibleMinutes: number;
+  undertimeGraceMinutes: number;
+  undertimeDeductibleMinutes: number;
   dailyRateRaw: number;
   hourlyRateRaw: number;
   regularEarningsRaw: number;
@@ -479,6 +501,9 @@ export type PayrollEmployeeCalculationDetail = {
   dailyBreakdowns: PayrollDailyBreakdown[];
   snapshots: PayrollInputSnapshot[];
   exceptions: PayrollEntryException[];
+  dayTypeResolutions: PayrollDayTypeResolution[];
+  premiumLines: PayrollPremiumLine[];
+  premiumEvents: PayrollPremiumEvent[];
 };
 
 export type PayrollCalculationRunInput = {
@@ -492,3 +517,175 @@ export type PayrollReasonActionInput = {
   reason: string;
 };
 
+
+
+export type PremiumRuleDayInput = {
+  dayType: PremiumDayType;
+  regularTimeMultiplier: number;
+  overtimeMultiplier: number;
+  additionalPremiumOnly: boolean;
+  nightDifferentialPercentage: number;
+  nightWindowStart: string;
+  nightWindowEnd: string;
+  overtimeRoundingMode: PremiumTimeRoundingMode;
+  overtimeRoundingIncrementMinutes: number | null;
+  nightRoundingMode: PremiumTimeRoundingMode;
+  nightRoundingIncrementMinutes: number | null;
+};
+
+export type PremiumRuleSetInput = {
+  name: string;
+  scopeType: PremiumRuleScopeType;
+  employmentType: string | null;
+  departmentId: string | null;
+  positionId: string | null;
+  payrollGroupId: string | null;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  changeReason: string;
+  sourceAgency: string;
+  sourceReference: string;
+  sourcePublicationDate: string;
+  sourceUrl: string;
+  dayRules: PremiumRuleDayInput[];
+};
+
+export type PremiumRuleDay = PremiumRuleDayInput & {
+  id: string;
+  versionNumber: number;
+};
+
+export type PremiumRuleSet = {
+  id: string;
+  supersedesRuleSetId: string | null;
+  name: string;
+  scopeType: PremiumRuleScopeType;
+  scopeLabel: string;
+  employmentType: string | null;
+  departmentId: string | null;
+  positionId: string | null;
+  payrollGroupId: string | null;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  status: PayrollRequestStatus;
+  changeReason: string | null;
+  version: number;
+  sourceAgency: string;
+  sourceReference: string;
+  sourcePublicationDate: string;
+  sourceUrl: string;
+  submittedAt: string | null;
+  approvedAt: string | null;
+  rejectedAt: string | null;
+  rejectionReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  dayRules: PremiumRuleDay[];
+};
+
+export type PremiumRulePreset = {
+  code: string;
+  name: string;
+  countryCode: "PH";
+  sourceAgency: string;
+  sourceReference: string;
+  sourcePublicationDate: string;
+  sourceUrl: string;
+  dayRules: PremiumRuleDayInput[];
+};
+
+export type PremiumRuleList = {
+  rules: PremiumRuleSet[];
+  presets: PremiumRulePreset[];
+  departments: Array<{ id: string; name: string }>;
+  positions: Array<{ id: string; name: string }>;
+  payrollGroups: Array<{ id: string; code: string; name: string }>;
+};
+
+export type AttendanceDeductionRuleInput = {
+  scopeType: PremiumRuleScopeType;
+  employmentType: string | null;
+  departmentId: string | null;
+  positionId: string | null;
+  payrollGroupId: string | null;
+  lateGraceMinutes: number;
+  undertimeGraceMinutes: number;
+  lateRoundingMode: PremiumTimeRoundingMode;
+  lateRoundingIncrementMinutes: number | null;
+  undertimeRoundingMode: PremiumTimeRoundingMode;
+  undertimeRoundingIncrementMinutes: number | null;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  changeReason: string;
+};
+
+export type AttendanceDeductionRule = AttendanceDeductionRuleInput & {
+  id: string;
+  supersedesRuleId: string | null;
+  scopeLabel: string;
+  status: PayrollRequestStatus;
+  version: number;
+  submittedAt: string | null;
+  approvedAt: string | null;
+  rejectedAt: string | null;
+  rejectionReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PremiumCoveragePreview = {
+  affectedEmployeeCount: number;
+  affectedOpenPeriodCount: number;
+  staleEntryCount: number;
+  conflictingRuleIds: string[];
+  missingDayTypes: PremiumDayType[];
+};
+
+export type PayrollDayTypeResolution = {
+  id: string;
+  workDate: string;
+  baseDayType: PremiumDayType;
+  isRestDay: boolean;
+  holidayVersionId: string | null;
+  holidayType: string | null;
+  holidayCount: number;
+  combinedDayType: PremiumDayType;
+  resolutionSource: Record<string, unknown>;
+  premiumRuleSetId: string;
+  premiumRuleVersionId: string;
+};
+
+export type PayrollPremiumLine = {
+  id: string;
+  dailyBreakdownId: string;
+  workDate: string;
+  premiumType: PremiumType;
+  dayType: PremiumDayType;
+  premiumRuleSetId: string;
+  premiumRuleVersionId: string;
+  baseHourlyRateRaw: number;
+  rawMinutes: number;
+  roundedMinutes: number;
+  dayMultiplier: number;
+  overtimeMultiplier: number;
+  nightPercentage: number;
+  baseAmountRaw: number;
+  premiumAmountRaw: number;
+  premiumAmountRounded: number;
+  isAdditionalOnly: boolean;
+  calculationDetails: Record<string, unknown>;
+  createdAt: string;
+};
+
+export type PayrollPremiumEvent = {
+  id: string;
+  eventType: string;
+  reason: string | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+};
+
+export type PremiumApprovalQueue = {
+  premiumRules: PremiumRuleSet[];
+  attendanceDeductionRules: AttendanceDeductionRule[];
+};

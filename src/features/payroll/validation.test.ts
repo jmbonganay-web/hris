@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   validateCompensationInput,
   validatePayrollScheduleInput,
+  validatePremiumPresetCloneInput,
   validateRecordVersion,
   validateScheduleAssignmentInput,
 } from "./validation.ts";
@@ -98,4 +99,17 @@ test("assignment validation requires safe identifiers and override reasons", () 
 test("record identity validation rejects invalid UUIDs and stale versions", () => {
   assert.ok(validateRecordVersion("bad", 0).state);
   assert.deepEqual(validateRecordVersion(uuid, 1).data, { id: uuid, expectedVersion: 1 });
+});
+
+
+test("premium preset clone validation requires scope and dates but not copied matrix fields", () => {
+  const result = validatePremiumPresetCloneInput({
+    presetCode: "ph_dole_2024_reference",
+    name: "Company premium rule",
+    scopeType: "company_default",
+    effectiveFrom: "2026-08-01",
+    changeReason: "Initial reviewed company policy",
+  });
+  assert.equal(result.data?.presetCode, "ph_dole_2024_reference");
+  assert.equal(result.data?.scopeType, "company_default");
 });

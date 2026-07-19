@@ -11,6 +11,8 @@ function common(formData: FormData) {
   const holidayDate = String(formData.get("holiday_date") ?? "").trim();
   const holidayName = String(formData.get("holiday_name") ?? "").trim();
   const holidayType = String(formData.get("holiday_type") ?? "").trim();
+  const holidayCountText = String(formData.get("holiday_count") ?? "1").trim();
+  const holidayCount = Number(holidayCountText);
   const changeReason = String(formData.get("change_reason") ?? "").trim();
   const fieldErrors: Record<string, string> = {};
 
@@ -23,6 +25,12 @@ function common(formData: FormData) {
   if (!holidayTypes.includes(holidayType as HolidayType)) {
     fieldErrors.holiday_type = "Choose a valid holiday type.";
   }
+  if (holidayCount !== 1 && holidayCount !== 2) {
+    fieldErrors.holiday_count = "Choose single or double regular holiday.";
+  }
+  if (holidayCount === 2 && holidayType !== "regular_holiday") {
+    fieldErrors.holiday_count = "Double classification is available only for regular holidays.";
+  }
   if (changeReason.length > 1000) {
     fieldErrors.change_reason = "Reason must be 1,000 characters or fewer.";
   }
@@ -31,6 +39,7 @@ function common(formData: FormData) {
     holidayDate,
     holidayName,
     holidayType,
+    holidayCount,
     changeReason,
     fieldErrors,
   };
@@ -44,6 +53,7 @@ export function validateHolidayCreate(
     holidayDate: string;
     holidayName: string;
     holidayType: HolidayType;
+    holidayCount: 1 | 2;
     changeReason: string | null;
   };
   state?: HolidayActionState;
@@ -69,6 +79,7 @@ export function validateHolidayCreate(
           holidayType: holidayTypes.includes(input.holidayType as HolidayType)
             ? input.holidayType as HolidayType
             : undefined,
+          holidayCount: input.holidayCount === 2 ? "2" : "1",
         },
       },
     };
@@ -79,6 +90,7 @@ export function validateHolidayCreate(
       holidayDate: input.holidayDate,
       holidayName: input.holidayName,
       holidayType: input.holidayType as HolidayType,
+      holidayCount: input.holidayCount as 1 | 2,
       changeReason: input.changeReason || null,
     },
   };
@@ -93,6 +105,7 @@ export function validateHolidayReplacement(
     holidayDate: string;
     holidayName: string;
     holidayType: HolidayType;
+    holidayCount: 1 | 2;
     isActive: boolean;
     changeReason: string | null;
   };
@@ -131,6 +144,7 @@ export function validateHolidayReplacement(
           holidayType: holidayTypes.includes(input.holidayType as HolidayType)
             ? input.holidayType as HolidayType
             : undefined,
+          holidayCount: input.holidayCount === 2 ? "2" : "1",
           isActive: isActiveText === "false" ? "false" : "true",
         },
       },
@@ -143,6 +157,7 @@ export function validateHolidayReplacement(
       holidayDate: input.holidayDate,
       holidayName: input.holidayName,
       holidayType: input.holidayType as HolidayType,
+      holidayCount: input.holidayCount as 1 | 2,
       isActive: isActiveText === "true",
       changeReason: input.changeReason || null,
     },

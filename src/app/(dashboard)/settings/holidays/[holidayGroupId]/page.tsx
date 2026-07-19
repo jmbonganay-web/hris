@@ -43,7 +43,15 @@ export default async function HolidayDetailPage({
             </div>
             <dl className="detail-grid">
               <div><dt>Date</dt><dd>{formatCompanyDate(version.holiday_date)}</dd></div>
-              <div><dt>Type</dt><dd>{holidayTypeLabel(version.holiday_type)}</dd></div>
+              <div>
+                <dt>Type</dt>
+                <dd>
+                  {version.holiday_type === "regular_holiday" && version.holiday_count === 2
+                    ? "Double regular holiday"
+                    : holidayTypeLabel(version.holiday_type)}
+                </dd>
+              </div>
+              <div><dt>Holiday count</dt><dd>{version.holiday_count === 2 ? "Two overlapping regular holidays" : "Single holiday"}</dd></div>
               <div><dt>Lifecycle</dt><dd>{version.is_active ? "Active" : "Deactivated"}</dd></div>
               <div><dt>Created</dt><dd>{formatCompanyDateTime(version.created_at)}</dd></div>
             </dl>

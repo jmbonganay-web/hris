@@ -36,6 +36,17 @@ const safePayrollErrors: ReadonlyArray<readonly [string, string]> = [
   ["PAYROLL_EXCEPTION_NOT_FOUND", "The selected payroll exception could not be found or is already resolved."],
   ["PAYROLL_EXCLUSION_NOT_FOUND", "The selected payroll exclusion could not be found or was already reversed."],
   ["PAYROLL_BLOCKING_EXCEPTION_REQUIRES_RECALCULATION", "Correct the source data and recalculate this employee before resolving the blocker."],
+  ["PAYROLL_PREMIUM_SCOPE_INVALID", "Choose a valid premium-rule scope."],
+  ["PAYROLL_PREMIUM_RULE_INVALID", "Review the premium-rule settings and try again."],
+  ["PAYROLL_PREMIUM_RULE_NOT_FOUND", "The selected premium rule could not be found."],
+  ["PAYROLL_PREMIUM_RULE_IMMUTABLE", "Approved premium rules cannot be edited."],
+  ["PAYROLL_PREMIUM_RULE_STATUS_INVALID", "This premium rule cannot perform the selected action."],
+  ["PAYROLL_PREMIUM_RULE_CONFLICT", "Another approved premium rule conflicts with this scope and date range."],
+  ["PAYROLL_PREMIUM_RULE_REQUIRED", "Approve a company-default premium rule before calculating premiums."],
+  ["PAYROLL_PREMIUM_ROUNDING_INVALID", "Review the premium-time rounding settings."],
+  ["PAYROLL_ATTENDANCE_DEDUCTION_RULE_INVALID", "Review the attendance deduction settings."],
+  ["PAYROLL_PREMIUM_CALCULATION_FAILED", "Payroll premiums could not be calculated."],
+  ["PAYROLL_PREMIUM_IMMUTABLE", "Completed premium calculation records cannot be changed."],
   ["PAYROLL_REASON_REQUIRED", "A reason is required for this payroll action."],
 ];
 
